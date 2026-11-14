@@ -39,3 +39,6 @@ The app bundles the circular logo from Logo/GFC Circle.jpg and finished player c
 ## Match line-ups and fonts
 - Formation board: choose a match (or the practice board), then build **Team A** and **Team B**. A player can only be in one team per match. "Create formation poster" opens the Poster studio on the Line-up type with the match filled in; choose Team A, Team B or both.
 - Fonts: **Manage fonts** (Poster studio and Squad) adds TTF/OTF/WOFF/WOFF2 files (3 MB max) or removes them. Added fonts are saved in the club data and used by poster headings and card templates. Removing a font switches anything using it to Winner GFC.
+
+## Match pack
+Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darken, vignette, grain, accent colour, heading font, feed or story size) shared by seven posters: Next match, Matchday, Full time, Line-up A/B and Squad list A/B. Drag any text on the poster, edit its words, size and position, hide it, or reset it. "Copy style from" reuses another match's look. Exports are 1080 px PNGs. A PSD is flattened into one background; its layers are not kept.

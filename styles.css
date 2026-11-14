@@ -2150,3 +2150,15 @@ td strong {
 .font-sample{font-size:1.5rem;min-width:150px}
 .font-meta{flex:1;display:flex;flex-direction:column}
 .font-meta small{opacity:.65}
+
+/* Match pack */
+.pack-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.pack-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:18px;align-items:start}
+.pack-stage{display:flex;flex-direction:column;gap:8px;align-items:center}
+.pack-canvas{width:100%;max-width:520px;border-radius:12px;border:1px solid rgba(128,128,128,.35);cursor:grab;background:#140306}
+.pack-side{display:grid;gap:14px}
+.pack-panel{display:grid;gap:10px}
+.pack-panel h3{margin:0}
+.pack-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.pack-row .field{flex:1 1 120px}
+@media (max-width:900px){.pack-layout{grid-template-columns:1fr}}
