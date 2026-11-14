@@ -385,7 +385,7 @@
   function makeFormationPoster(){
     const key=boardKey(),a=placedCount(key,'A'),b=placedCount(key,'B');
     if(!a&&!b)return toast('Place players on the board first, then create the poster.');
-    const st=data.studio;st.type='lineup';st.posterLineupMatch=data.formation.matchId;st.posterLineupTeam=a&&b?'both':a?'A':'B';applyMatchToPoster(st.posterLineupMatch);
+    const st=data.studio;st.type='lineup';st.posterLineupMatch=data.formation.matchId;st.posterLineupTeam=placedCount(key,data.formation.team)?data.formation.team:a?'A':'B';applyMatchToPoster(st.posterLineupMatch);
     persist();setPage('studio');toast('Line-up poster ready. Change teams, fonts or format on the left.');
   }
   // ---- Fonts: one library shared by the poster studio and card templates ----
@@ -435,39 +435,40 @@
   }
   // ---- Line-up poster: draws the board's pitch for Team A, Team B or both ----
   async function posterImg(src){if(!src)return null;let im=posterImages.get(src);if(!im){im=await new Promise(resolve=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>resolve(null);i.src=src;});if(im)posterImages.set(src,im);}return im;}
+  // Style follows the club's Instagram: crimson-to-black gradient, cropped giant heading, white pitch lines, dark-red player cards.
   async function drawPitchPanel(ctx,x,y,w,h,team,hf){
-    const c=data.formation.colors,layers=formationLayers(team.shape),maxN=Math.max(...layers.map(l=>l.length));
-    ctx.save();ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,14);else ctx.rect(x,y,w,h);ctx.clip();
-    ctx.fillStyle=c.base;ctx.fillRect(x,y,w,h);ctx.globalAlpha=.16;ctx.fillStyle=c.primary;for(let i=0;i<8;i+=2)ctx.fillRect(x,y+i*h/8,w,h/8);
-    ctx.globalAlpha=.7;ctx.strokeStyle=c.line;ctx.lineWidth=Math.max(1.5,w/260);ctx.strokeRect(x+10,y+10,w-20,h-20);ctx.beginPath();ctx.moveTo(x+10,y+h/2);ctx.lineTo(x+w-10,y+h/2);ctx.stroke();ctx.beginPath();ctx.arc(x+w/2,y+h/2,Math.min(w,h)*.11,0,Math.PI*2);ctx.stroke();ctx.strokeRect(x+w*.22,y+10,w*.56,h*.13);ctx.strokeRect(x+w*.22,y+h-10-h*.13,w*.56,h*.13);ctx.globalAlpha=1;
-    const gap=.72*h/(layers.length-1),r=Math.max(12,Math.min(w/(maxN+1)*.4,(gap-20)/2,34));
+    const layers=formationLayers(team.shape),maxN=Math.max(...layers.map(l=>l.length)),cw=Math.min(w/(maxN+.6)*.82,86),chh=cw*1.5;
+    ctx.save();ctx.strokeStyle='rgba(255,247,245,.92)';ctx.lineWidth=Math.max(2,w/190);
+    const L=x+6,R=x+w-6,T=y+6,B=y+h-6,mx=(L+R)/2,mid=(T+B)/2;
+    ctx.beginPath();ctx.moveTo(L+(R-L)*.0,B);ctx.lineTo(L,T+(B-T)*.08);ctx.lineTo(L+(R-L)*.06,T);ctx.lineTo(R-(R-L)*.06,T);ctx.lineTo(R,T+(B-T)*.08);ctx.lineTo(R,B);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(L,mid);ctx.lineTo(R,mid);ctx.stroke();ctx.beginPath();ctx.arc(mx,mid,(R-L)*.09,0,Math.PI*2);ctx.stroke();
+    ctx.strokeRect(L+(R-L)*.2,T,(R-L)*.6,(B-T)*.14);ctx.strokeRect(L+(R-L)*.34,B-(B-T)*.075,(R-L)*.32,(B-T)*.075);ctx.strokeRect(L+(R-L)*.2,B-(B-T)*.14,(R-L)*.6,(B-T)*.14);
     for(let li=0;li<layers.length;li++){const line=layers[li];for(let i=0;i<line.length;i++){
-      const cx=x+(i+1)*w/(line.length+1),cy=y+(.12+li*.72/(layers.length-1))*h-5,p=data.squad.find(q=>q.id===team.slots[`${li}-${i}`]);
+      const cx=x+(i+1)*w/(line.length+1),cy=y+(.1+li*.78/(layers.length-1))*h,p=data.squad.find(q=>q.id===team.slots[`${li}-${i}`]),x0=cx-cw/2,y0=cy-chh/2;
       ctx.textAlign='center';
       if(p){
-        const im=await posterImg(p.photo);ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#2a1016';ctx.fill();ctx.clip();
-        if(im){const s=Math.max(2*r/im.width,2*r/im.height)*1.1,dw=im.width*s,dh=im.height*s;ctx.drawImage(im,cx-dw/2,cy-r,dw,dh);}ctx.restore();
-        ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.lineWidth=Math.max(2,r*.12);ctx.strokeStyle=c.primary;ctx.stroke();
-        const br=r*.42,bx=cx+r*.78,by=cy+r*.78;ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fillStyle=c.primary;ctx.fill();ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.font=`bold ${br*1.1}px ${hf}`;ctx.fillText(String(p.number),bx,by+1);
-        const name=String(p.name).toUpperCase(),maxW=w/(line.length+1)*.96;let nf=Math.max(9,Math.min(15,r*.62));ctx.font=`bold ${nf}px ${hf}`;while(ctx.measureText(name).width>maxW&&nf>7){nf-=.5;ctx.font=`bold ${nf}px ${hf}`;}
-        ctx.textBaseline='top';ctx.fillStyle='#fff';ctx.fillText(name,cx,cy+r+3);
-      }else{
-        ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle=c.line;ctx.globalAlpha=.55;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();ctx.restore();
-        ctx.globalAlpha=.7;ctx.fillStyle=c.line;ctx.textBaseline='middle';ctx.font=`bold ${Math.max(9,r*.5)}px ${hf}`;ctx.fillText(line[i],cx,cy);ctx.globalAlpha=1;
-      }
+        const im=await posterImg(p.card);
+        if(im){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10;ctx.drawImage(im,x0,y0,cw,chh);ctx.shadowBlur=0;}
+        else{const ph=await posterImg(p.photo);ctx.save();ctx.beginPath();ctx.roundRect?ctx.roundRect(x0,y0,cw,chh,8):ctx.rect(x0,y0,cw,chh);ctx.fillStyle='#4a0a10';ctx.fill();ctx.clip();if(ph){const s=Math.max(cw/ph.width,chh*.75/ph.height);ctx.drawImage(ph,cx-ph.width*s/2,y0,ph.width*s,ph.height*s);}ctx.restore();
+          ctx.fillStyle='rgba(20,4,6,.82)';ctx.fillRect(x0,y0+chh*.72,cw,chh*.28);ctx.fillStyle='#fff';ctx.textBaseline='middle';let nf=Math.min(15,cw*.2);ctx.font=`bold ${nf}px ${hf}`;const name=String(p.name).toUpperCase();while(ctx.measureText(name).width>cw-6&&nf>7){nf-=.5;ctx.font=`bold ${nf}px ${hf}`;}ctx.fillText(name,cx,y0+chh*.86);}
+      }else{ctx.save();ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(255,247,245,.55)';ctx.lineWidth=2;ctx.strokeRect(x0,y0,cw,chh);ctx.restore();ctx.fillStyle='rgba(255,247,245,.7)';ctx.textBaseline='middle';ctx.font=`bold ${Math.max(10,cw*.24)}px ${hf}`;ctx.fillText(line[i],cx,cy);}
     }}
     ctx.restore();
   }
   async function drawLineupPoster(ctx,w,h,st,hf){
-    const red=data.formation.colors.primary,key=st.posterLineupMatch||'practice',want=st.posterLineupTeam||'both';
+    const red=data.formation.colors.primary,key=st.posterLineupMatch||'practice',want=st.posterLineupTeam||'A';
     let teams=want==='both'?['A','B'].filter(t=>placedCount(key,t)>0):[want];if(!teams.length)teams=['A'];
-    const x0=28,y0=h*.325,W=w-56,H=h*.575,gap=14,label=26,story=h>1000;
-    const boxes=teams.length===1?[[x0,y0,W,H]]:story?[[x0,y0,W,(H-gap)/2],[x0,y0+(H+gap)/2,W,(H-gap)/2]]:[[x0,y0,(W-gap)/2,H],[x0+(W+gap)/2,y0,(W-gap)/2,H]];
-    for(let i=0;i<teams.length;i++){
-      const [bx,by,bw,bh]=boxes[i],team=peek(key,teams[i])||{size:11,shape:'4-3-3',slots:{}};
-      ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=red;ctx.font=`bold 20px ${hf}`;ctx.fillText(`TEAM ${teams[i]}  ·  ${team.shape}`,bx+2,by+label/2-2);
-      await drawPitchPanel(ctx,bx,by+label,bw,bh-label,team,hf);
-    }
+    // background: crimson glow fading to near-black, with film grain
+    const g=ctx.createRadialGradient(w*.5,h*.45,w*.1,w*.5,h*.5,h*.75);g.addColorStop(0,'#b5141a');g.addColorStop(.6,'#5e0a10');g.addColorStop(1,'#140306');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='rgba(255,255,255,.05)';for(let i=0;i<1800;i++){const s=(i*9301+49297)%233280;ctx.fillRect(s%w,(s*7)%h,1.4,1.4);}
+    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='rgba(237,28,36,.9)';let hs=w*.27;ctx.font=`bold ${hs}px ${hf}`;while(ctx.measureText('FORMATION').width>w*.96&&hs>20){hs-=4;ctx.font=`bold ${hs}px ${hf}`;}ctx.fillText('FORMATION',w/2,-hs*.38);
+    const sub=[st.opponent?`GFC VS ${st.opponent}`:'',st.date?fmtDate(st.date):'',st.venue].filter(Boolean).join('  ·  ').toUpperCase().slice(0,60);
+    ctx.fillStyle='#fff7f5';ctx.font=`bold 17px ${hf}`;ctx.fillText(sub,w/2,hs*.58);
+    const top=hs*.58+30,bot=h-112,gap=14,W=w-64,H=bot-top,single=teams.length===1;
+    const boxes=single?[[32,top,W,H]]:h>1000?[[32,top,W,(H-gap)/2],[32,top+(H+gap)/2,W,(H-gap)/2]]:[[32,top,(W-gap)/2,H],[32+(W+gap)/2,top,(W-gap)/2,H]];
+    for(let i=0;i<teams.length;i++){const [bx,by,bw,bh]=boxes[i],team=peek(key,teams[i])||{size:11,shape:'4-3-3',slots:{}};await drawPitchPanel(ctx,bx,by,bw,bh,team,hf);
+      ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.fillStyle='#fff7f5';ctx.font=`italic bold 20px ${hf}`;ctx.fillText(team.shape,bx+4,by+bh+22);ctx.textAlign='right';ctx.fillText(`TEAM ${teams[i]}`,bx+bw-4,by+bh+22);}
+    const logo=await posterImg('assets/brand/gfc-circle.jpg');if(logo&&single){ctx.save();ctx.beginPath();ctx.arc(w/2,h-70,24,0,Math.PI*2);ctx.clip();ctx.drawImage(logo,w/2-24,h-94,48,48);ctx.restore();}
     ctx.textAlign='left';ctx.textBaseline='top';
   }
   function cardTile(p){
@@ -584,7 +585,7 @@
   addSelect('posterFit','Photo fit',[['crop','Fill frame · crop without stretching'],['contain','Show full photo · no crop']]);
   addSelect('posterFont','Heading font',fontChoices().map(n=>[n,n]));
   addSelect('posterLineupMatch','Line-up match',[['','Practice board · no match'],...[...data.matches].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(m=>[m.id,matchLabel(m)])]);
-  addSelect('posterLineupTeam','Line-up teams',[['both','Team A and Team B'],['A','Team A only'],['B','Team B only']]);
+  addSelect('posterLineupTeam','Line-up teams',[['A','Team A only'],['B','Team B only'],['both','Team A and Team B']]);
   $('#posterLineupMatch').addEventListener('change',()=>{applyMatchToPoster(data.studio.posterLineupMatch);updatePoster();});
   addRange('posterFocusX','Photo position · left to right',50);
   addRange('posterFocusY','Photo position · top to bottom',45);

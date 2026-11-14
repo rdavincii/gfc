@@ -54,3 +54,4 @@ To stay within Claude's upload limit, this handoff copy downsizes bundled card P
 - Data: `data.lineups[matchId|'practice'][A|B]={size,shape,slots}`, `data.formation={matchId,team,colors}`, `data.fonts=[{name,src}]`. Old single board migrates to `lineups.practice.A`; old `template.fonts` migrate to `data.fonts`.
 - Poster line-up type draws pitches from the board (`drawLineupPoster`). Tests: scratchpad t5 (new), t2-t4 adapted.
 - Instagram art direction not studied: the account can't be fetched. Needs screenshots from the user.
+- Line-up poster restyled from the Instagram grid: crimson-to-black gradient with grain, giant cropped "FORMATION" heading, white pitch lines, player cards on the pitch, formation label bottom-left, team bottom-right. Default is one team per poster (matches the A/B post pairs); "Team A and Team B" is still available. Brush-script headings seen on the feed ("Match Day", scores) are not bundled: add a script font via Manage fonts.
