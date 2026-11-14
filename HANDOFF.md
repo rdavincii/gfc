@@ -49,3 +49,8 @@ Generated template player cards are rendered from template metadata rather than 
 ## Compact handoff asset note
 
 To stay within Claude's upload limit, this handoff copy downsizes bundled card PNGs to 640 px wide and player cutouts to at most 320 px wide while preserving transparency. The working app and full-resolution assets in the Codex workspace are unchanged. Use the full-resolution originals for production card/poster exports.
+
+## Update: Team A/B line-ups and font library
+- Data: `data.lineups[matchId|'practice'][A|B]={size,shape,slots}`, `data.formation={matchId,team,colors}`, `data.fonts=[{name,src}]`. Old single board migrates to `lineups.practice.A`; old `template.fonts` migrate to `data.fonts`.
+- Poster line-up type draws pitches from the board (`drawLineupPoster`). Tests: scratchpad t5 (new), t2-t4 adapted.
+- Instagram art direction not studied: the account can't be fetched. Needs screenshots from the user.

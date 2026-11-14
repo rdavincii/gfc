@@ -2137,3 +2137,16 @@ td strong {
 .pitch.tactics-pitch { --row-gap:calc(clamp(35px,6.2vw,58px) * 1.54 + 44px); min-height:calc((var(--lines,4) - 1) * var(--row-gap) / .72); }
 .substitute-player { touch-action:pan-x; } /* horizontal swipes scroll the bench; vertical drags still pick a card up */
 @media (max-width:700px) { .pitch.tactics-pitch[data-lines] { --row-gap:84px; aspect-ratio:auto; } }
+
+/* Match bar, Team A/B tabs, font manager */
+.match-bar{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-bottom:14px}
+.match-bar .field{flex:1 1 260px}
+.team-tabs{display:flex;gap:8px}
+.team-tab{display:flex;flex-direction:column;align-items:center;min-width:104px;padding:9px 18px;border:2px solid var(--line,#3a1c22);border-radius:10px;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.team-tab small{font-weight:500;opacity:.7;font-size:.72rem}
+.team-tab.is-active{background:#ed1c24;border-color:#ed1c24;color:#fff}
+.font-list{display:grid;gap:8px}
+.font-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:1px solid rgba(128,128,128,.3);border-radius:10px}
+.font-sample{font-size:1.5rem;min-width:150px}
+.font-meta{flex:1;display:flex;flex-direction:column}
+.font-meta small{opacity:.65}

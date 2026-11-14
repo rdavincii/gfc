@@ -35,3 +35,7 @@ This first version does not publish directly to Instagram. Automatic publishing 
 ## Included club artwork
 
 The app bundles the circular logo from Logo/GFC Circle.jpg and finished player card exports from FIFA_Card_Project/Cards.
+
+## Match line-ups and fonts
+- Formation board: choose a match (or the practice board), then build **Team A** and **Team B**. A player can only be in one team per match. "Create formation poster" opens the Poster studio on the Line-up type with the match filled in; choose Team A, Team B or both.
+- Fonts: **Manage fonts** (Poster studio and Squad) adds TTF/OTF/WOFF/WOFF2 files (3 MB max) or removes them. Added fonts are saved in the club data and used by poster headings and card templates. Removing a font switches anything using it to Winner GFC.
