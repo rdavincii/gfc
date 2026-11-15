@@ -76,3 +76,8 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - "Tier by rating" gives each rated player the Bronze/Silver/Gold/Rare template for their rating (<65, 65–74, 75–84, 85+); unrated players keep the chosen design. "Shine effect" toggles the gloss.
 - Templates are stored as normal edition values (`tpl`, `autoTier`, `shine`), so they save into saved styles and work on line-up posters.
 - Test: `tests/card-templates-ui.test.js`.
+
+## v5.3 · Card frames and layout
+- Match cards → "Import card frame": a PNG with see-through edges (your own artwork). The card outline is worked out from the frame automatically (everything enclosed by it counts as inside), so no separate shape file is needed. "Frame over the photo" chooses whether the frame sits under or over the player photo; a full-card template picture works under the photo, a hollow border works over it. Frames save into styles and work on line-up posters.
+- Layout tuned toward the Ultimate Team arrangement: bigger rating, position beneath it, club crest, larger photo, bigger name, tighter two-column stats. EA's official card artwork is not included or copied.
+- Test: `tests/card-frame-ui.test.js` (uses `tests/frame.png`).

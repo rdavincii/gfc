@@ -51,7 +51,7 @@
     const img = (v) => (typeof v === 'string' && v.startsWith('data:image/') ? v : '');
     const shapeImg = img(s.shapeImg);
     return {
-      preset: preset.id, pattern, shape: shapeImg ? 'custom' : (SHAPES.some((q) => q[0] === s.shape) ? s.shape : 'shield'), shapeImg, bg: img(s.bg),
+      preset: preset.id, pattern, shape: shapeImg ? 'custom' : (SHAPES.some((q) => q[0] === s.shape) ? s.shape : 'shield'), shapeImg, bg: img(s.bg), frame: img(s.frame), frameTop: s.frameTop === true,
       c1: hex(s.c1) || preset.c1, c2: hex(s.c2) || preset.c2, accent: hex(s.accent) || preset.accent, ink: hex(s.ink) || preset.ink,
       tpl: TEMPLATES.some((q) => q.id === s.tpl) ? s.tpl : '', autoTier: s.autoTier === true, shine: s.shine !== false,
       label: typeof s.label === 'string' ? s.label.slice(0, 18) : 'MATCHDAY', stats: s.stats !== false, font: s.font || ''
@@ -100,7 +100,8 @@
       const look = opts.potm ? '#f6dc8a' : ed.accent;
       const rim = mk(), rc = rim.getContext('2d'); rc.drawImage(opts.shapeImage, 0, 0, W, H); rc.globalCompositeOperation = 'source-in'; rc.fillStyle = look; rc.fillRect(0, 0, W, H);
       const body = mk(), bc = body.getContext('2d'); paintCard(bc, 0, 0, W, player, ed, { ...opts, bare: true }); bc.globalCompositeOperation = 'destination-in'; bc.drawImage(opts.shapeImage, 0, 0, W, H);
-      ctx.drawImage(rim, x, y, w, h); const k = 0.955; ctx.drawImage(body, x + w * (1 - k) / 2, y + h * (1 - k) / 2, w * k, h * k);
+      if (opts.frameImage) ctx.drawImage(body, x, y, w, h); // the frame artwork is its own rim
+      else { ctx.drawImage(rim, x, y, w, h); const k = 0.955; ctx.drawImage(body, x + w * (1 - k) / 2, y + h * (1 - k) / 2, w * k, h * k); }
       return;
     }
     paintCard(ctx, x, y, w, player, ed, opts);
@@ -115,10 +116,11 @@
     const bgi = opts.bgImage;
     if (bgi) { const sc = Math.max(w / bgi.width, h / bgi.height), sw = w / sc, sh = h / sc; ctx.drawImage(bgi, (bgi.width - sw) / 2, (bgi.height - sh) / 2, sw, sh, x, y, w, h); }
     else pattern(ctx, ed.pattern, x, y, w, h, look.accent);
-    const sOff = !ed.stats, nameY = sOff ? 0.8 : 0.68;
+    const sOff = !ed.stats, nameY = sOff ? 0.81 : 0.705, fr = opts.frameImage;
+    if (fr && !ed.frameTop) ctx.drawImage(fr, x, y, w, h);
     const sheen = ctx.createLinearGradient(x, y, x + w, y + h * 0.5); sheen.addColorStop(0, 'rgba(255,255,255,.22)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); if (ed.shine) { ctx.fillStyle = sheen; ctx.fillRect(x, y, w, h); const st = ctx.createLinearGradient(x, y + h * 0.1, x + w, y + h * 0.9); st.addColorStop(0.38, 'rgba(255,255,255,0)'); st.addColorStop(0.5, 'rgba(255,255,255,.16)'); st.addColorStop(0.62, 'rgba(255,255,255,0)'); ctx.fillStyle = st; ctx.fillRect(x, y, w, h); }
     // photo (bottom fades into the card)
-    const px = x + w * 0.26, py = y + h * 0.1, pw = w * 0.72, ph = h * (sOff ? 0.6 : 0.5);
+    const px = x + w * 0.2, py = y + h * 0.06, pw = w * 0.8, ph = h * (sOff ? 0.68 : 0.58);
     if (opts.photo) {
       const im = opts.photo, sc = Math.max(pw / im.width, ph / im.height), sw = pw / sc, sh = ph / sc;
       ctx.save(); ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip(); ctx.drawImage(im, (im.width - sw) / 2, Math.max(0, (im.height - sh) * 0.15), sw, sh, px, py, pw, ph);
@@ -126,37 +128,38 @@
     } else if (opts.crest) { ctx.save(); ctx.globalAlpha = 0.35; const s = Math.min(pw, ph) * 0.8; ctx.drawImage(opts.crest, px + (pw - s) / 2, py + (ph - s) / 2, s, s); ctx.restore(); }
     // bottom shade so the name and stats stay readable over any photo
     const sy0 = nameY - 0.18, shade = ctx.createLinearGradient(0, y + h * sy0, 0, y + h * (nameY - 0.02)); shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, bgi ? 'rgba(0,0,0,.72)' : look.c1); ctx.fillStyle = shade; ctx.fillRect(x, y + h * sy0, w, h * (1 - sy0));
+    if (fr && ed.frameTop) ctx.drawImage(fr, x, y, w, h);
     ctx.restore();
 
     // frame (custom shapes get their rim from drawCard)
-    if (!opts.bare) { ctx.save(); shield(ctx, x, y, w, h, kind); ctx.lineWidth = w * 0.022; ctx.strokeStyle = look.accent; ctx.stroke();
+    if (!opts.bare && !fr) { ctx.save(); shield(ctx, x, y, w, h, kind); ctx.lineWidth = w * 0.022; ctx.strokeStyle = look.accent; ctx.stroke();
     shield(ctx, x + w * 0.035, y + w * 0.035, w * 0.93, h - w * 0.07, kind); ctx.lineWidth = w * 0.006; ctx.globalAlpha = 0.6; ctx.stroke(); ctx.restore(); }
 
     const f = FONT(ed.font), ink = look.ink;
     ctx.save(); ctx.fillStyle = ink; ctx.textBaseline = 'alphabetic';
     // rating + position + number + crest, left column
     ctx.textAlign = 'center'; const lx = x + w * 0.17;
-    ctx.font = `700 ${w * 0.21}px ${f}`; ctx.fillText(player.rating == null ? '--' : String(player.rating), lx, y + h * 0.17);
-    ctx.font = `700 ${w * 0.085}px ${f}`; ctx.fillText(String(player.position || '').toUpperCase(), lx, y + h * 0.215);
-    ctx.fillStyle = look.accent; ctx.fillRect(lx - w * 0.06, y + h * 0.235, w * 0.12, Math.max(1, w * 0.006));
-    ctx.fillStyle = ink; ctx.font = `700 ${w * 0.075}px ${f}`; ctx.fillText('#' + (player.number ?? ''), lx, y + h * 0.285);
-    if (opts.crest) { const s = w * 0.15; ctx.drawImage(opts.crest, lx - s / 2, y + h * 0.31, s, s); }
+    ctx.font = `700 ${w * 0.25}px ${f}`; ctx.fillText(player.rating == null ? '--' : String(player.rating), lx, y + h * 0.185);
+    ctx.font = `700 ${w * 0.1}px ${f}`; ctx.fillText(String(player.position || '').toUpperCase(), lx, y + h * 0.238);
+    ctx.fillStyle = look.accent; ctx.fillRect(lx - w * 0.07, y + h * 0.256, w * 0.14, Math.max(1, w * 0.007));
+    ctx.fillStyle = ink; ctx.font = `700 ${w * 0.075}px ${f}`; ctx.fillText('#' + (player.number ?? ''), lx, y + h * 0.3);
+    if (opts.crest) { const s = w * 0.15; ctx.drawImage(opts.crest, lx - s / 2, y + h * 0.325, s, s); }
     // edition label
     if (ed.label && !potm) { ctx.globalAlpha = 0.9; ctx.font = `700 ${w * 0.055}px ${f}`; ctx.fillStyle = look.accent; ctx.fillText(String(ed.label).toUpperCase(), x + w * 0.62, y + h * 0.075); ctx.globalAlpha = 1; }
     if (potm) { ctx.fillStyle = look.accent; ctx.font = `700 ${w * 0.055}px ${f}`; ctx.fillText('★ PLAYER OF THE MATCH', x + w * 0.62, y + h * 0.075); }
     // name
-    ctx.fillStyle = ink; let fs = w * (sOff ? 0.15 : 0.13); const name = String(player.name || '').toUpperCase(); ctx.font = `700 ${fs}px ${f}`; while (ctx.measureText(name).width > w * 0.78 && fs > 8) { fs *= 0.94; ctx.font = `700 ${fs}px ${f}`; }
+    ctx.fillStyle = ink; let fs = w * (sOff ? 0.16 : 0.14); const name = String(player.name || '').toUpperCase(); ctx.font = `700 ${fs}px ${f}`; while (ctx.measureText(name).width > w * 0.78 && fs > 8) { fs *= 0.94; ctx.font = `700 ${fs}px ${f}`; }
     ctx.fillText(name, x + w * 0.5, y + h * nameY);
     ctx.fillStyle = look.accent; ctx.fillRect(x + w * 0.2, y + h * (nameY + 0.015), w * 0.6, Math.max(1, w * 0.007));
     // stats
     if (ed.stats) {
       const keys = opts.attrKeys || [], a = player.attrs || {};
       keys.forEach((k, i) => {
-        const col = i % 2, row = Math.floor(i / 2), sx = x + w * (col ? 0.58 : 0.18), sy = y + h * (0.765 + row * 0.07);
+        const col = i % 2, row = Math.floor(i / 2), sx = x + w * (col ? 0.58 : 0.18), sy = y + h * (0.765 + row * 0.06);
         ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.font = `700 ${w * 0.085}px ${f}`; ctx.fillText(a[k] == null ? '--' : String(a[k]), sx, sy);
         ctx.fillStyle = look.accent; ctx.font = `700 ${w * 0.065}px ${f}`; ctx.fillText(LABELS[k] || '', sx + w * 0.115, sy);
       });
-      ctx.fillStyle = look.accent; ctx.globalAlpha = 0.5; ctx.fillRect(x + w * 0.5 - w * 0.004, y + h * 0.72, w * 0.008, h * 0.19); ctx.globalAlpha = 1;
+      ctx.fillStyle = look.accent; ctx.globalAlpha = 0.5; ctx.fillRect(x + w * 0.5 - w * 0.004, y + h * 0.725, w * 0.008, h * 0.17); ctx.globalAlpha = 1;
     }
     ctx.restore();
   }
