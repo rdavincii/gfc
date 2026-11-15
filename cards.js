@@ -13,6 +13,7 @@
     { id: 'sunset', name: 'Sunset', c1: '#4a0c27', c2: '#ff7a2f', accent: '#fff0d0', ink: '#ffffff' }
   ];
   const PATTERNS = [['rays', 'Rays'], ['rings', 'Rings'], ['hex', 'Hex'], ['stripes', 'Stripes'], ['waves', 'Waves'], ['dots', 'Dots']];
+  const SHAPES = [['shield', 'Shield'], ['classic', 'Classic'], ['angled', 'GFC cut'], ['rounded', 'Rounded'], ['hex', 'Hexagon'], ['arch', 'Arch']];
   const LABELS = { pace: 'PAC', shooting: 'SHO', passing: 'PAS', dribbling: 'DRI', defending: 'DEF', physical: 'PHY', diving: 'DIV', handling: 'HAN', kicking: 'KIC', reflexes: 'REF', speed: 'SPD', positioning: 'POS' };
   const RATIO = 1.54;
   const FONT = (f) => `"${f || 'Winner GFC'}","Bebas GFC",sans-serif`;
@@ -24,22 +25,34 @@
     const s = stored || {}, h = hash(matchId);
     const preset = PRESETS.find((p) => p.id === s.preset) || PRESETS[h % PRESETS.length];
     const pattern = PATTERNS.some((p) => p[0] === s.pattern) ? s.pattern : PATTERNS[(h >>> 4) % PATTERNS.length][0];
+    const img = (v) => (typeof v === 'string' && v.startsWith('data:image/') ? v : '');
+    const shapeImg = img(s.shapeImg);
     return {
-      preset: preset.id, pattern,
+      preset: preset.id, pattern, shape: shapeImg ? 'custom' : (SHAPES.some((q) => q[0] === s.shape) ? s.shape : 'shield'), shapeImg, bg: img(s.bg),
       c1: hex(s.c1) || preset.c1, c2: hex(s.c2) || preset.c2, accent: hex(s.accent) || preset.accent, ink: hex(s.ink) || preset.ink,
       label: typeof s.label === 'string' ? s.label.slice(0, 18) : 'MATCHDAY', stats: s.stats !== false, font: s.font || ''
     };
   }
   const shuffle = () => ({ preset: PRESETS[Math.floor(Math.random() * PRESETS.length)].id, pattern: PATTERNS[Math.floor(Math.random() * PATTERNS.length)][0] });
 
-  function shield(ctx, x, y, w, h) {
-    const c = w * 0.16;
+  // Outline of the card. Every shape fits the same w x h box.
+  function shield(ctx, x, y, w, h, kind = 'shield') {
+    const c = w * 0.16, P = (a, b) => [x + w * a, y + h * b];
     ctx.beginPath();
-    ctx.moveTo(x + c, y); ctx.lineTo(x + w * 0.5 - w * 0.08, y); ctx.lineTo(x + w * 0.5, y + h * 0.012); ctx.lineTo(x + w * 0.5 + w * 0.08, y); ctx.lineTo(x + w - c, y);
-    ctx.lineTo(x + w, y + c * 1.1); ctx.lineTo(x + w, y + h * 0.80);
-    ctx.quadraticCurveTo(x + w, y + h * 0.90, x + w * 0.5, y + h);
-    ctx.quadraticCurveTo(x, y + h * 0.90, x, y + h * 0.80);
-    ctx.lineTo(x, y + c * 1.1); ctx.closePath();
+    if (kind === 'classic') { const pts = [[0.1, 0], [0.9, 0], [1, 0.07], [1, 0.82], [0.5, 1], [0, 0.82], [0, 0.07]]; pts.forEach(([a, b], i) => ctx[i ? 'lineTo' : 'moveTo'](...P(a, b))); }
+    else if (kind === 'angled') { [[0, 0], [0.79, 0], [1, 0.16], [1, 0.83], [0.52, 1], [0, 0.84]].forEach(([a, b], i) => ctx[i ? 'lineTo' : 'moveTo'](...P(a, b))); }
+    else if (kind === 'hex') { [[0.5, 0], [1, 0.1], [1, 0.9], [0.5, 1], [0, 0.9], [0, 0.1]].forEach(([a, b], i) => ctx[i ? 'lineTo' : 'moveTo'](...P(a, b))); }
+    else if (kind === 'rounded') { const r = w * 0.18; ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); }
+    else if (kind === 'arch') { ctx.moveTo(x, y + h * 0.92); ctx.lineTo(x, y + w * 0.5); ctx.arc(x + w / 2, y + w * 0.5, w / 2, Math.PI, 0); ctx.lineTo(x + w, y + h * 0.92); ctx.lineTo(x + w * 0.88, y + h); ctx.lineTo(x + w * 0.12, y + h); }
+    else if (kind === 'rect') { ctx.rect(x, y, w, h); }
+    else {
+      ctx.moveTo(x + c, y); ctx.lineTo(x + w * 0.5 - w * 0.08, y); ctx.lineTo(x + w * 0.5, y + h * 0.012); ctx.lineTo(x + w * 0.5 + w * 0.08, y); ctx.lineTo(x + w - c, y);
+      ctx.lineTo(x + w, y + c * 1.1); ctx.lineTo(x + w, y + h * 0.80);
+      ctx.quadraticCurveTo(x + w, y + h * 0.90, x + w * 0.5, y + h);
+      ctx.quadraticCurveTo(x, y + h * 0.90, x, y + h * 0.80);
+      ctx.lineTo(x, y + c * 1.1);
+    }
+    ctx.closePath();
   }
 
   function pattern(ctx, kind, x, y, w, h, col) {
@@ -55,29 +68,45 @@
   }
 
   // opts: photo (Image|null), crest (Image|null), attrKeys[], potm (bool)
+  // opts: photo, crest, bgImage (Image|null), shapeImage (Image|null, used as an alpha mask when ed.shape === 'custom'), attrKeys, potm
   function drawCard(ctx, x, y, w, player, ed, opts = {}) {
-    const h = w * RATIO, potm = !!opts.potm;
+    const h = w * RATIO;
+    if (ed.shape === 'custom' && opts.shapeImage) {
+      const W = Math.ceil(w), H = Math.ceil(h), mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+      const look = opts.potm ? '#f6dc8a' : ed.accent;
+      const rim = mk(), rc = rim.getContext('2d'); rc.drawImage(opts.shapeImage, 0, 0, W, H); rc.globalCompositeOperation = 'source-in'; rc.fillStyle = look; rc.fillRect(0, 0, W, H);
+      const body = mk(), bc = body.getContext('2d'); paintCard(bc, 0, 0, W, player, ed, { ...opts, bare: true }); bc.globalCompositeOperation = 'destination-in'; bc.drawImage(opts.shapeImage, 0, 0, W, H);
+      ctx.drawImage(rim, x, y, w, h); const k = 0.955; ctx.drawImage(body, x + w * (1 - k) / 2, y + h * (1 - k) / 2, w * k, h * k);
+      return;
+    }
+    paintCard(ctx, x, y, w, player, ed, opts);
+  }
+  function paintCard(ctx, x, y, w, player, ed, opts) {
+    const h = w * RATIO, potm = !!opts.potm, kind = opts.bare ? 'rect' : (ed.shape === 'custom' ? 'shield' : ed.shape || 'shield');
     const look = potm ? { ...ed, c1: '#7a5412', c2: '#f6dc8a', accent: '#3a2606', ink: '#2a1b04' } : ed;
     ctx.save();
-    shield(ctx, x, y, w, h); ctx.clip();
+    shield(ctx, x, y, w, h, kind); ctx.clip();
     const g = ctx.createLinearGradient(x, y, x + w * 0.6, y + h); g.addColorStop(0, look.c2); g.addColorStop(0.55, look.c1); g.addColorStop(1, look.c1);
     ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
-    pattern(ctx, ed.pattern, x, y, w, h, look.accent);
+    const bgi = opts.bgImage;
+    if (bgi) { const sc = Math.max(w / bgi.width, h / bgi.height), sw = w / sc, sh = h / sc; ctx.drawImage(bgi, (bgi.width - sw) / 2, (bgi.height - sh) / 2, sw, sh, x, y, w, h); }
+    else pattern(ctx, ed.pattern, x, y, w, h, look.accent);
+    const sOff = !ed.stats, nameY = sOff ? 0.8 : 0.68;
     const sheen = ctx.createLinearGradient(x, y, x + w, y + h * 0.5); sheen.addColorStop(0, 'rgba(255,255,255,.22)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); ctx.fillStyle = sheen; ctx.fillRect(x, y, w, h);
     // photo (bottom fades into the card)
-    const px = x + w * 0.26, py = y + h * 0.1, pw = w * 0.72, ph = h * 0.5;
+    const px = x + w * 0.26, py = y + h * 0.1, pw = w * 0.72, ph = h * (sOff ? 0.6 : 0.5);
     if (opts.photo) {
       const im = opts.photo, sc = Math.max(pw / im.width, ph / im.height), sw = pw / sc, sh = ph / sc;
       ctx.save(); ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip(); ctx.drawImage(im, (im.width - sw) / 2, Math.max(0, (im.height - sh) * 0.15), sw, sh, px, py, pw, ph);
       ctx.restore();
     } else if (opts.crest) { ctx.save(); ctx.globalAlpha = 0.35; const s = Math.min(pw, ph) * 0.8; ctx.drawImage(opts.crest, px + (pw - s) / 2, py + (ph - s) / 2, s, s); ctx.restore(); }
     // bottom shade so the name and stats stay readable over any photo
-    const shade = ctx.createLinearGradient(0, y + h * 0.5, 0, y + h * 0.66); shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, look.c1); ctx.fillStyle = shade; ctx.fillRect(x, y + h * 0.5, w, h * 0.16);
+    const sy0 = nameY - 0.18, shade = ctx.createLinearGradient(0, y + h * sy0, 0, y + h * (nameY - 0.02)); shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, bgi ? 'rgba(0,0,0,.72)' : look.c1); ctx.fillStyle = shade; ctx.fillRect(x, y + h * sy0, w, h * (1 - sy0));
     ctx.restore();
 
-    // frame
-    ctx.save(); shield(ctx, x, y, w, h); ctx.lineWidth = w * 0.022; ctx.strokeStyle = look.accent; ctx.stroke();
-    shield(ctx, x + w * 0.035, y + w * 0.035, w * 0.93, h - w * 0.07); ctx.lineWidth = w * 0.006; ctx.globalAlpha = 0.6; ctx.stroke(); ctx.restore();
+    // frame (custom shapes get their rim from drawCard)
+    if (!opts.bare) { ctx.save(); shield(ctx, x, y, w, h, kind); ctx.lineWidth = w * 0.022; ctx.strokeStyle = look.accent; ctx.stroke();
+    shield(ctx, x + w * 0.035, y + w * 0.035, w * 0.93, h - w * 0.07, kind); ctx.lineWidth = w * 0.006; ctx.globalAlpha = 0.6; ctx.stroke(); ctx.restore(); }
 
     const f = FONT(ed.font), ink = look.ink;
     ctx.save(); ctx.fillStyle = ink; ctx.textBaseline = 'alphabetic';
@@ -92,9 +121,9 @@
     if (ed.label && !potm) { ctx.globalAlpha = 0.9; ctx.font = `700 ${w * 0.055}px ${f}`; ctx.fillStyle = look.accent; ctx.fillText(String(ed.label).toUpperCase(), x + w * 0.62, y + h * 0.075); ctx.globalAlpha = 1; }
     if (potm) { ctx.fillStyle = look.accent; ctx.font = `700 ${w * 0.055}px ${f}`; ctx.fillText('★ PLAYER OF THE MATCH', x + w * 0.62, y + h * 0.075); }
     // name
-    ctx.fillStyle = ink; let fs = w * 0.13; const name = String(player.name || '').toUpperCase(); ctx.font = `700 ${fs}px ${f}`; while (ctx.measureText(name).width > w * 0.78 && fs > 8) { fs *= 0.94; ctx.font = `700 ${fs}px ${f}`; }
-    ctx.fillText(name, x + w * 0.5, y + h * 0.68);
-    ctx.fillStyle = look.accent; ctx.fillRect(x + w * 0.2, y + h * 0.695, w * 0.6, Math.max(1, w * 0.007));
+    ctx.fillStyle = ink; let fs = w * (sOff ? 0.15 : 0.13); const name = String(player.name || '').toUpperCase(); ctx.font = `700 ${fs}px ${f}`; while (ctx.measureText(name).width > w * 0.78 && fs > 8) { fs *= 0.94; ctx.font = `700 ${fs}px ${f}`; }
+    ctx.fillText(name, x + w * 0.5, y + h * nameY);
+    ctx.fillStyle = look.accent; ctx.fillRect(x + w * 0.2, y + h * (nameY + 0.015), w * 0.6, Math.max(1, w * 0.007));
     // stats
     if (ed.stats) {
       const keys = opts.attrKeys || [], a = player.attrs || {};
@@ -128,7 +157,7 @@
     ctx.fillStyle = '#fff'; ctx.font = `700 34px ${f}`; ctx.fillText('GAMUDA FOOTBALL CLUB', 144, h - 62);
   }
 
-  const api = { PRESETS, PATTERNS, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
+  const api = { PRESETS, PATTERNS, SHAPES, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
   root.GFC_CARDS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

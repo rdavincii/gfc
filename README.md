@@ -63,3 +63,10 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - Generates a card for every player in the chosen scope (line-ups, played, whole squad). Export one card, a TOTS-style sheet poster, or save all cards. The match's player of the match gets a gold card.
 - `cards.js` is the canvas renderer (`window.GFC_CARDS`); designs are stored in `data.editions[matchId]`. Missing ratings/attributes draw as "--". The older template card studio in Squad is unchanged.
 - Test: `tests/cards-ui.test.js`.
+
+## v5.1 · Card shapes, imported backgrounds, saved styles
+- Match cards now offer six shapes (Shield, Classic, GFC cut, Rounded, Hexagon, Arch) or an imported shape: a PNG/SVG with a see-through background, used as the card outline. It is stretched to the card's 1:1.54 ratio.
+- Import a background picture (PNG/JPG/WEBP) per match; pictures are shrunk before storing.
+- With attributes off the name moves lower and the photo grows to fill the space.
+- "Save style" stores the whole look (including imported pictures) in `data.cardStyles` (max 24). Apply it to any match from the Saved styles row. Match pack → "Player cards on line-up posters" picks the match's style or any saved style for formation posters; deleting a style resets posters that used it.
+- Test: `tests/card-styles-ui.test.js` (uses `tests/shape.png`, `tests/bg.jpg`).

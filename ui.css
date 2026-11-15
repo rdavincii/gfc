@@ -318,3 +318,5 @@ body{background:radial-gradient(900px 520px at 88% -8%,rgba(237,28,36,.30),trans
   .cc-look{min-height:52px}
 }
 @media (prefers-reduced-motion:reduce){.cc-tile{transition:none}}
+.cc-save{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.cc-save .field{flex:1 1 180px}
+.cc-saved{display:inline-flex;align-items:center;gap:2px}.cc-x{min-width:36px;min-height:36px;border:0;background:transparent;color:var(--color-muted);font-size:20px;cursor:pointer}
