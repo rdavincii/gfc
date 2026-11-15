@@ -70,3 +70,9 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - With attributes off the name moves lower and the photo grows to fill the space.
 - "Save style" stores the whole look (including imported pictures) in `data.cardStyles` (max 24). Apply it to any match from the Saved styles row. Match pack → "Player cards on line-up posters" picks the match's style or any saved style for formation posters; deleting a style resets posters that used it.
 - Test: `tests/card-styles-ui.test.js` (uses `tests/shape.png`, `tests/bg.jpg`).
+
+## v5.2 · Card templates
+- Match cards has a template gallery: Standard tiers (Bronze, Silver, Gold, Rare gold) and Special editions (Matchday, Captain, Icon, Hero, Team of the Year, Rising star, Night match, Golden hour). They are original GFC designs (colours, pattern, shape, label); tap one to apply it, then keep tweaking.
+- "Tier by rating" gives each rated player the Bronze/Silver/Gold/Rare template for their rating (<65, 65–74, 75–84, 85+); unrated players keep the chosen design. "Shine effect" toggles the gloss.
+- Templates are stored as normal edition values (`tpl`, `autoTier`, `shine`), so they save into saved styles and work on line-up posters.
+- Test: `tests/card-templates-ui.test.js`.

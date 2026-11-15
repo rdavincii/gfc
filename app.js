@@ -31,7 +31,7 @@
       d.packs[m.id]={bg:typeof r.bg==='string'&&r.bg.startsWith('data:image/')?r.bg:'',fx:n('fx',0,100),fy:n('fy',0,100),tint:n('tint',0,1),shade:n('shade',0,.8),vignette:n('vignette',0,.9),grain:n('grain',0,1),primary:/^#[0-9a-f]{6}$/i.test(r.primary)?r.primary:D.primary,font:typeof r.font==='string'?r.font:'',format:r.format==='story'?'story':'feed',cardStyle:r.cardStyle==='match'||(Array.isArray(raw.cardStyles)&&raw.cardStyles.some(x=>x&&x.id===r.cardStyle))?r.cardStyle:'',layouts:r.layouts&&typeof r.layouts==='object'?r.layouts:{}};}
     d.fonts=Array.isArray(raw.fonts)?raw.fonts.filter(x=>x&&x.name&&x.src).map(x=>({name:x.name,src:x.src})):[];
     d.cardTemplates.forEach(t=>{if(Array.isArray(t.fonts)){t.fonts.forEach(x=>{if(x&&x.name&&x.src&&!d.fonts.some(y=>y.name===x.name))d.fonts.push({name:x.name,src:x.src});});delete t.fonts;}});
-    const cleanEd=s=>{const o={};if(!s||typeof s!=='object')return o;if(GC.PRESETS.some(q=>q.id===s.preset))o.preset=s.preset;if(GC.PATTERNS.some(q=>q[0]===s.pattern))o.pattern=s.pattern;if(GC.SHAPES.some(q=>q[0]===s.shape))o.shape=s.shape;for(const k of ['shapeImg','bg'])if(typeof s[k]==='string'&&s[k].startsWith('data:image/'))o[k]=s[k];for(const k of ['c1','c2','accent','ink'])if(/^#[0-9a-f]{6}$/i.test(s[k]))o[k]=s[k];if(typeof s.label==='string')o.label=s.label.slice(0,18);if(s.stats===false)o.stats=false;if(typeof s.font==='string'&&(d.fonts.some(f=>f.name===s.font)||['Winner GFC','Bebas GFC','Arial'].includes(s.font)))o.font=s.font;return o;};
+    const cleanEd=s=>{const o={};if(!s||typeof s!=='object')return o;if(GC.PRESETS.some(q=>q.id===s.preset))o.preset=s.preset;if(GC.PATTERNS.some(q=>q[0]===s.pattern))o.pattern=s.pattern;if(GC.SHAPES.some(q=>q[0]===s.shape))o.shape=s.shape;for(const k of ['shapeImg','bg'])if(typeof s[k]==='string'&&s[k].startsWith('data:image/'))o[k]=s[k];for(const k of ['c1','c2','accent','ink'])if(/^#[0-9a-f]{6}$/i.test(s[k]))o[k]=s[k];if(typeof s.label==='string')o.label=s.label.slice(0,18);if(s.stats===false)o.stats=false;if(GC.TEMPLATES.some(q=>q.id===s.tpl))o.tpl=s.tpl;if(s.autoTier===true)o.autoTier=true;if(s.shine===false)o.shine=false;if(typeof s.font==='string'&&(d.fonts.some(f=>f.name===s.font)||['Winner GFC','Bebas GFC','Arial'].includes(s.font)))o.font=s.font;return o;};
     d.editions={};for(const [id,s] of Object.entries(raw.editions&&typeof raw.editions==='object'?raw.editions:{}))if(d.matches.some(m=>m.id===id))d.editions[id]=cleanEd(s);
     d.cardStyles=(Array.isArray(raw.cardStyles)?raw.cardStyles:[]).filter(x=>x&&typeof x.id==='string'&&typeof x.name==='string').slice(0,24).map(x=>({id:x.id,name:x.name.slice(0,30)||'Style',ed:cleanEd(x.ed)}));
     const old=raw.formation||{};d.lineups=raw.lineups&&typeof raw.lineups==='object'?raw.lineups:{};
@@ -653,6 +653,11 @@
       const p=playerById(c.dataset.cc);if(!p)continue;const photo=await loadCardImage(p.photo);if(tok!==cardToken)return;
       const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);GC.drawCard(ctx,4,4,c.width-8,p,ed,cardOpts(m,p,look,photo));
     }
+    const sample=playerById(cardUi.selected)||data.squad[0],sp=sample?await loadCardImage(sample.photo):null;
+    for(const c of $$('#appContent canvas[data-cc-tplc]')){
+      if(tok!==cardToken||!sample)return;const x=GC.TEMPLATES.find(q=>q.id===c.dataset.ccTplc),te=GC.resolve(m.id,{...x.ed,preset:'gfc-red',stats:ed.stats?undefined:false,label:x.ed.label,font:ed.font||undefined});
+      const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);GC.drawCard(ctx,3,3,c.width-6,{...sample,rating:sample.rating},te,{photo:sp,crest:look.crest,attrKeys:G.attrKeys(sample)});
+    }
   }
   function cardsView(){
     const ms=[...data.matches].sort((a,b)=>b.date.localeCompare(a.date));
@@ -664,7 +669,10 @@
 <section class="panel match-bar"><label class="field"><span class="field-label">Match</span><select id="ccMatch" class="select">${ms.map(x=>`<option value="${safe(x.id)}" ${x.id===m.id?'selected':''}>${safe(matchLabel(x))}</option>`).join('')}</select></label></section>
 <div class="cc-layout"><div class="cc-stage">${cardUi.selected?`<canvas id="ccPreview" class="cc-preview" data-cc="${safe(cardUi.selected)}" width="308" height="474"></canvas>`:'<p class="caption">No players in this selection yet.</p>'}
 <div class="cc-stage-actions">${btn('Export card','cc-export-one','button button-primary button-small')}${btn('Export sheet','cc-export-sheet','button button-secondary button-small')}${btn('Save all','cc-export-all','button button-quiet button-small')}</div></div>
-<section class="panel cc-controls"><p class="field-label">Look</p><div class="cc-chips">${GC.PRESETS.map(q=>`<button type="button" class="cc-look ${ed.preset===q.id?'is-active':''}" data-cc-preset="${q.id}" style="background:linear-gradient(135deg,${q.c2},${q.c1})" aria-label="${safe(q.name)}"><span>${safe(q.name)}</span></button>`).join('')}</div>
+<section class="panel cc-controls"><p class="field-label">Card templates</p>${['Standard','Special'].map(g=>`<p class="cc-group">${g}</p><div class="cc-chips">${GC.TEMPLATES.filter(x=>x.group===g).map(x=>`<button type="button" class="cc-tpl ${ed.tpl===x.id?'is-active':''}" data-cc-tpl="${x.id}" aria-label="${safe(x.name)}"><canvas data-cc-tplc="${x.id}" width="132" height="203"></canvas><span>${safe(x.name)}</span></button>`).join('')}</div>`).join('')}
+<label class="cc-check"><input type="checkbox" id="ccAuto" ${ed.autoTier?'checked':''}> Tier by rating (Bronze under 65, Silver 65–74, Gold 75–84, Rare 85+; unrated players keep this design)</label>
+<label class="cc-check"><input type="checkbox" id="ccShine" ${ed.shine?'checked':''}> Shine effect</label>
+<p class="field-label">Look</p><div class="cc-chips">${GC.PRESETS.map(q=>`<button type="button" class="cc-look ${ed.preset===q.id?'is-active':''}" data-cc-preset="${q.id}" style="background:linear-gradient(135deg,${q.c2},${q.c1})" aria-label="${safe(q.name)}"><span>${safe(q.name)}</span></button>`).join('')}</div>
 <p class="field-label">Shape</p><div class="cc-chips">${GC.SHAPES.map(([id,l])=>`<button type="button" class="team-tab ${ed.shape===id?'is-active':''}" data-cc-shape="${id}">${l}</button>`).join('')}${ed.shape==='custom'?'<button type="button" class="team-tab is-active" disabled>Imported</button>':''}</div>
 <div class="cc-row"><label class="field"><span class="field-label">Import shape (PNG or SVG with a see-through background)</span><input class="input" type="file" id="ccShapeFile" accept="image/png,image/svg+xml,image/webp"></label><label class="field"><span class="field-label">Import background (PNG, JPG, WEBP)</span><input class="input" type="file" id="ccBgFile" accept="image/png,image/jpeg,image/webp"></label></div>
 <div class="cc-stage-actions">${ed.shape==='custom'?btn('Remove imported shape','cc-clear-shape','button button-quiet button-small'):''}${ed.bg?btn('Remove background','cc-clear-bg','button button-quiet button-small'):''}</div>
@@ -684,15 +692,18 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     const redraw=()=>{const y=scrollY;setPage('cards');scrollTo(0,y);};
     const set=(patch,keep)=>{const s={...(data.editions[m.id]||{})};for(const [k,v] of Object.entries(patch)){if(v==null)delete s[k];else s[k]=v;}data.editions[m.id]=s;persistSoon();keep?paintCards():redraw();};
     $('#ccMatch').onchange=e=>{cardUi.matchId=e.target.value;cardUi.selected='';setPage('cards');};
-    $$('[data-cc-preset]').forEach(b=>b.onclick=()=>set({preset:b.dataset.ccPreset,c1:null,c2:null,accent:null,ink:null}));
-    $$('[data-cc-pattern]').forEach(b=>b.onclick=()=>set({pattern:b.dataset.ccPattern}));
+    $$('[data-cc-preset]').forEach(b=>b.onclick=()=>set({preset:b.dataset.ccPreset,c1:null,c2:null,accent:null,ink:null,tpl:null}));
+    $$('[data-cc-tpl]').forEach(b=>b.onclick=()=>{const x=GC.TEMPLATES.find(q=>q.id===b.dataset.ccTpl);set({...x.ed,tpl:x.id,shapeImg:null});});
+    $('#ccAuto').onchange=e=>set({autoTier:e.target.checked?true:null},true);
+    $('#ccShine').onchange=e=>set({shine:e.target.checked?null:false},true);
+    $$('[data-cc-pattern]').forEach(b=>b.onclick=()=>set({pattern:b.dataset.ccPattern,tpl:null}));
     $$('[data-cc-color]').forEach(i=>i.oninput=()=>set({[i.dataset.ccColor]:i.value},true));
     $('#ccLabel').oninput=e=>set({label:e.target.value},true);
     $('#ccFont').onchange=e=>set({font:e.target.value},true);
     $('#ccStats').onchange=e=>set({stats:e.target.checked?null:false},true);
     $$('[data-cc-scope]').forEach(b=>b.onclick=()=>{cardUi.scope=b.dataset.ccScope;cardUi.selected='';redraw();});
     $$('[data-cc-pick]').forEach(b=>b.onclick=()=>{cardUi.selected=b.dataset.ccPick;redraw();scrollTo(0,0);});
-    $$('[data-cc-shape]').forEach(b=>b.onclick=()=>set({shape:b.dataset.ccShape,shapeImg:null}));
+    $$('[data-cc-shape]').forEach(b=>b.onclick=()=>set({shape:b.dataset.ccShape,shapeImg:null,tpl:null}));
     $('#ccShapeFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const r=await importPicture(f,700,true);if(!r.clear)toast('That picture has no see-through area, so the card stays a full rectangle.');set({shapeImg:r.src,shape:null});}catch(err){toast(err.message);}};
     $('#ccBgFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const r=await importPicture(f,900,false);set({bg:r.src});}catch(err){toast(err.message);}};
     $$('[data-cc-apply]').forEach(b=>b.onclick=async()=>{const s=data.cardStyles.find(x=>x.id===b.dataset.ccApply);if(!s)return;data.editions[m.id]=JSON.parse(JSON.stringify(s.ed));persistSoon();redraw();toast(`Style "${s.name}" applied.`);});
@@ -702,7 +713,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
   async function saveCardStyle(){
     const m=cardMatch(),name=($('#ccStyleName').value||'').trim();if(!m)return;if(!name)return toast('Give the style a name first.');
     if(data.cardStyles.length>=24)return toast('You can keep up to 24 styles. Delete one first.');
-    const ed=cardEd(m),{preset,pattern,shape,c1,c2,accent,ink,label,stats,font,bg,shapeImg}=ed,saved={preset,pattern,shape:shape==='custom'?undefined:shape,c1,c2,accent,ink,label,font:font||undefined,bg:bg||undefined,shapeImg:shapeImg||undefined};if(!stats)saved.stats=false;
+    const ed=cardEd(m),{preset,pattern,shape,c1,c2,accent,ink,label,stats,font,bg,shapeImg,tpl,autoTier,shine}=ed,saved={tpl:tpl||undefined,autoTier:autoTier||undefined,shine:shine?undefined:false,preset,pattern,shape:shape==='custom'?undefined:shape,c1,c2,accent,ink,label,font:font||undefined,bg:bg||undefined,shapeImg:shapeImg||undefined};if(!stats)saved.stats=false;
     const prev=data.cardStyles;data.cardStyles=[...prev,{id:uid(),name:name.slice(0,30),ed:JSON.parse(JSON.stringify(saved))}];
     if(!await persist()){data.cardStyles=prev;return;}toast(`Saved "${name}". Pick it when you make a formation poster.`);const y=scrollY;setPage('cards');scrollTo(0,y);
   }

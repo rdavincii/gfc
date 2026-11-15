@@ -14,6 +14,29 @@
   ];
   const PATTERNS = [['rays', 'Rays'], ['rings', 'Rings'], ['hex', 'Hex'], ['stripes', 'Stripes'], ['waves', 'Waves'], ['dots', 'Dots']];
   const SHAPES = [['shield', 'Shield'], ['classic', 'Classic'], ['angled', 'GFC cut'], ['rounded', 'Rounded'], ['hex', 'Hexagon'], ['arch', 'Arch']];
+  // Original GFC card templates, grouped like a card creator's "official styles" (tiers first, then special editions).
+  const T = (id, name, group, c1, c2, accent, ink, pattern, shape, label) => ({ id, name, group, ed: { c1, c2, accent, ink, pattern, shape, label } });
+  const TEMPLATES = [
+    T('bronze', 'Bronze', 'Standard', '#4a2a12', '#c98a52', '#f3d2a8', '#2b1608', 'dots', 'classic', 'BRONZE'),
+    T('silver', 'Silver', 'Standard', '#4a5560', '#d7dee6', '#ffffff', '#1d252c', 'stripes', 'classic', 'SILVER'),
+    T('gold', 'Gold', 'Standard', '#8a5f12', '#f6dc8a', '#fff3c4', '#2a1b04', 'rays', 'classic', 'GOLD'),
+    T('rare', 'Rare gold', 'Standard', '#6e4a08', '#ffd25a', '#fff8d8', '#241503', 'rays', 'shield', 'RARE'),
+    T('matchday', 'Matchday', 'Special', '#2a060b', '#ed1c24', '#ffd9d2', '#ffffff', 'stripes', 'angled', 'MATCHDAY'),
+    T('captain', 'Captain', 'Special', '#08080a', '#2c2c33', '#f3c969', '#ffffff', 'rings', 'arch', 'CAPTAIN'),
+    T('icon', 'Icon', 'Special', '#b9a36a', '#fdf6dc', '#6b5420', '#3a2c0c', 'waves', 'hex', 'ICON'),
+    T('hero', 'Hero', 'Special', '#12063a', '#2fc7b8', '#e9fffb', '#ffffff', 'rays', 'shield', 'HERO'),
+    T('toty', 'Team of the Year', 'Special', '#07123f', '#1f4fd8', '#e8c872', '#f6e7b4', 'hex', 'rounded', 'TEAM OF THE YEAR'),
+    T('rising', 'Rising star', 'Special', '#03281d', '#14a56a', '#d9ffe8', '#ffffff', 'stripes', 'angled', 'RISING STAR'),
+    T('night', 'Night match', 'Special', '#1c0638', '#8a3cff', '#ffe1ff', '#ffffff', 'dots', 'classic', 'NIGHT MATCH'),
+    T('sunset', 'Golden hour', 'Special', '#4a0c27', '#ff7a2f', '#fff0d0', '#ffffff', 'waves', 'rounded', 'GOLDEN HOUR')
+  ];
+  const TIERS = [['bronze', 0], ['silver', 65], ['gold', 75], ['rare', 85]];
+  // With "tier by rating" on, a rated player's card takes the Bronze/Silver/Gold/Rare template for their rating (other settings stay).
+  function forPlayer(ed, player) {
+    if (!ed.autoTier || player.rating == null) return ed;
+    let id = 'bronze'; for (const [k, min] of TIERS) if (player.rating >= min) id = k;
+    return { ...ed, ...TEMPLATES.find((x) => x.id === id).ed, shape: ed.shape === 'custom' ? 'custom' : TEMPLATES.find((x) => x.id === id).ed.shape };
+  }
   const LABELS = { pace: 'PAC', shooting: 'SHO', passing: 'PAS', dribbling: 'DRI', defending: 'DEF', physical: 'PHY', diving: 'DIV', handling: 'HAN', kicking: 'KIC', reflexes: 'REF', speed: 'SPD', positioning: 'POS' };
   const RATIO = 1.54;
   const FONT = (f) => `"${f || 'Winner GFC'}","Bebas GFC",sans-serif`;
@@ -30,6 +53,7 @@
     return {
       preset: preset.id, pattern, shape: shapeImg ? 'custom' : (SHAPES.some((q) => q[0] === s.shape) ? s.shape : 'shield'), shapeImg, bg: img(s.bg),
       c1: hex(s.c1) || preset.c1, c2: hex(s.c2) || preset.c2, accent: hex(s.accent) || preset.accent, ink: hex(s.ink) || preset.ink,
+      tpl: TEMPLATES.some((q) => q.id === s.tpl) ? s.tpl : '', autoTier: s.autoTier === true, shine: s.shine !== false,
       label: typeof s.label === 'string' ? s.label.slice(0, 18) : 'MATCHDAY', stats: s.stats !== false, font: s.font || ''
     };
   }
@@ -69,8 +93,8 @@
 
   // opts: photo (Image|null), crest (Image|null), attrKeys[], potm (bool)
   // opts: photo, crest, bgImage (Image|null), shapeImage (Image|null, used as an alpha mask when ed.shape === 'custom'), attrKeys, potm
-  function drawCard(ctx, x, y, w, player, ed, opts = {}) {
-    const h = w * RATIO;
+  function drawCard(ctx, x, y, w, player, ed0, opts = {}) {
+    const ed = forPlayer(ed0, player), h = w * RATIO;
     if (ed.shape === 'custom' && opts.shapeImage) {
       const W = Math.ceil(w), H = Math.ceil(h), mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
       const look = opts.potm ? '#f6dc8a' : ed.accent;
@@ -92,7 +116,7 @@
     if (bgi) { const sc = Math.max(w / bgi.width, h / bgi.height), sw = w / sc, sh = h / sc; ctx.drawImage(bgi, (bgi.width - sw) / 2, (bgi.height - sh) / 2, sw, sh, x, y, w, h); }
     else pattern(ctx, ed.pattern, x, y, w, h, look.accent);
     const sOff = !ed.stats, nameY = sOff ? 0.8 : 0.68;
-    const sheen = ctx.createLinearGradient(x, y, x + w, y + h * 0.5); sheen.addColorStop(0, 'rgba(255,255,255,.22)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); ctx.fillStyle = sheen; ctx.fillRect(x, y, w, h);
+    const sheen = ctx.createLinearGradient(x, y, x + w, y + h * 0.5); sheen.addColorStop(0, 'rgba(255,255,255,.22)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); if (ed.shine) { ctx.fillStyle = sheen; ctx.fillRect(x, y, w, h); const st = ctx.createLinearGradient(x, y + h * 0.1, x + w, y + h * 0.9); st.addColorStop(0.38, 'rgba(255,255,255,0)'); st.addColorStop(0.5, 'rgba(255,255,255,.16)'); st.addColorStop(0.62, 'rgba(255,255,255,0)'); ctx.fillStyle = st; ctx.fillRect(x, y, w, h); }
     // photo (bottom fades into the card)
     const px = x + w * 0.26, py = y + h * 0.1, pw = w * 0.72, ph = h * (sOff ? 0.6 : 0.5);
     if (opts.photo) {
@@ -157,7 +181,7 @@
     ctx.fillStyle = '#fff'; ctx.font = `700 34px ${f}`; ctx.fillText('GAMUDA FOOTBALL CLUB', 144, h - 62);
   }
 
-  const api = { PRESETS, PATTERNS, SHAPES, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
+  const api = { PRESETS, PATTERNS, SHAPES, TEMPLATES, forPlayer, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
   root.GFC_CARDS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
