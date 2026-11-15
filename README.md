@@ -57,3 +57,9 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - New data fields: player `foot/attrs/joined/history`, match `stats{played,goals,assists,potm}`, `data.training`, `data.rules`, `data.progress{unlocked,claimed,exports}`, lineup `captain`, `settings.pitchTheme`. Older backups load and are normalised.
 - Tests (Playwright, app served on :4173): `tests/game-ui.test.js`, `tests/game.unit.js`.
 - Not built yet: dedicated substitutes picker, opponent logos, separate season-XP track, settings page; `styles.css` still has dead legacy rules.
+
+## v5 · Match cards (Ultimate-Team-style editions)
+- Club → Match cards (or "Cards" on any match in Matchday). Every match gets its own card design automatically (preset + pattern chosen from the match id); change the look, pattern, 4 colours, edition label, font and attribute visibility. Shuffle for a new design, Reset to go back to auto.
+- Generates a card for every player in the chosen scope (line-ups, played, whole squad). Export one card, a TOTS-style sheet poster, or save all cards. The match's player of the match gets a gold card.
+- `cards.js` is the canvas renderer (`window.GFC_CARDS`); designs are stored in `data.editions[matchId]`. Missing ratings/attributes draw as "--". The older template card studio in Squad is unchanged.
+- Test: `tests/cards-ui.test.js`.
