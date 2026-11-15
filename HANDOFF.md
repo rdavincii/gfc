@@ -56,3 +56,6 @@ To stay within Claude's upload limit, this handoff copy downsizes bundled card P
 - Instagram art direction not studied: the account can't be fetched. Needs screenshots from the user.
 - Line-up poster restyled from the Instagram grid: crimson-to-black gradient with grain, giant cropped "FORMATION" heading, white pitch lines, player cards on the pitch, formation label bottom-left, team bottom-right. Default is one team per poster (matches the A/B post pairs); "Team A and Team B" is still available. Brush-script headings seen on the feed ("Match Day", scores) are not bundled: add a script font via Manage fonts.
 - Match pack page: `data.packs[matchId]={bg,fx,fy,tint,shade,vignette,grain,primary,font,format,layouts:{kind:{elementId:{x,y,s,text,hide}}}}`. Elements come from `packElements(kind,match)`; `renderPack` paints; drag/selection in `bindPack`. Formation board's "Create formation poster" opens the pack when a match is chosen. Test: scratchpad t6.
+
+- v3: removed Poster studio (`data.studio` gone), added `data.progress={seen,exports,days}`, `lineups[..][team].pos` (free card positions as pitch fractions), `slotXY()`, new formation view/handlers, Hub view, Club tabs, `ui.css`. Tests: scratchpad t7 (new UI), t2, t4, t5, t6.
+- Known debt: old pitch/poster-studio/sidebar rules in `styles.css` are now dead and can be deleted.

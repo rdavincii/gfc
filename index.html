@@ -2,59 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GFC Club Desk</title>
-    <meta name="description" content="A local club workspace for Gamuda Football Club fixtures, squad, posters, formations and growth tracking.">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>GFC Club Manager</title>
+    <meta name="description" content="Gamuda Football Club manager: fixtures, squad cards, formations, match poster packs and club growth.">
     <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./ui.css">
     <script defer src="./initial-data.js"></script>
     <script defer src="./psd-import.js"></script>
     <script defer src="./app.js"></script>
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar" id="sidebar">
-        <a class="brand" href="#overview" data-nav="overview" aria-label="Gamuda Football Club overview">
-          <img src="./assets/brand/gfc-circle.jpg" alt="Gamuda Football Club circular logo">
-          <span class="brand-wordmark">GFC<span>club desk</span></span>
+      <header class="topbar">
+        <a class="brand" href="#overview" data-nav="overview" aria-label="Gamuda Football Club hub">
+          <img src="./assets/brand/gfc-circle.jpg" alt="">
+          <span class="brand-wordmark">GFC<span>club manager</span></span>
         </a>
-        <div class="club-switcher">
-          <img class="club-switcher-mark" src="assets/brand/gfc-circle.jpg" alt="">
-          <span><strong>Gamuda Football Club</strong><small>Club workspace</small></span>
-          <span class="switcher-caret" aria-hidden="true">⌄</span>
-        </div>
         <nav class="primary-nav" aria-label="Club tools">
-          <button class="nav-item is-active" type="button" data-nav="overview" aria-current="page"><span class="nav-icon" data-icon="overview"></span><span>Overview</span></button>
-          <button class="nav-item" type="button" data-nav="matches"><span class="nav-icon" data-icon="calendar"></span><span>Matches</span></button>
-          <button class="nav-item" type="button" data-nav="studio"><span class="nav-icon" data-icon="poster"></span><span>Poster studio</span></button>
-          <button class="nav-item" type="button" data-nav="packs"><span class="nav-icon" data-icon="poster"></span><span>Match pack</span></button>
-          <button class="nav-item" type="button" data-nav="squad"><span class="nav-icon" data-icon="squad"></span><span>Squad</span></button>
-          <button class="nav-item" type="button" data-nav="formation"><span class="nav-icon" data-icon="formation"></span><span>Formation</span></button>
-          <button class="nav-item" type="button" data-nav="growth"><span class="nav-icon" data-icon="growth"></span><span>Club growth</span></button>
-          <button class="nav-item" type="button" data-nav="instagram"><span class="nav-icon" data-icon="instagram"></span><span>Instagram planner</span></button>
+          <button class="nav-item is-active" type="button" data-nav="overview" aria-current="page"><span class="nav-glyph">🏠</span><span>Hub</span></button>
+          <button class="nav-item" type="button" data-nav="matches"><span class="nav-glyph">📅</span><span>Matches</span></button>
+          <button class="nav-item" type="button" data-nav="squad"><span class="nav-glyph">🃏</span><span>Squad</span></button>
+          <button class="nav-item" type="button" data-nav="formation"><span class="nav-glyph">⚽</span><span>Formation</span></button>
+          <button class="nav-item" type="button" data-nav="packs"><span class="nav-glyph">🎨</span><span>Match pack</span></button>
+          <button class="nav-item" type="button" data-nav="growth"><span class="nav-glyph">📈</span><span>Club</span></button>
         </nav>
-        <div class="sidebar-bottom">
-          <div class="local-status"><span class="status-icon" data-icon="shield"></span><span><strong>Saved on this device</strong><small>No club data leaves this browser</small></span></div>
-          <button class="nav-item backup-button" type="button" data-action="export-backup"><span class="nav-icon" data-icon="download"></span><span>Export club backup</span></button>
-          <button class="nav-item backup-button" type="button" data-action="import-backup"><span class="nav-icon" data-icon="upload"></span><span>Restore from backup</span></button>
-          <div class="sidebar-account"><span class="account-monogram">GF</span><span><strong>GFC admin</strong><small>@genmudafc</small></span><span class="account-more" aria-hidden="true">•••</span></div>
+        <div class="topbar-actions">
+          <button class="xp-chip" id="xpChip" type="button" data-nav="overview" aria-label="Club level"></button>
+          <span class="save-state" id="saveState" aria-live="polite">Saved locally</span>
+          <button class="button button-primary" type="button" data-action="quick-match"><span>＋ Match</span></button>
         </div>
-      </aside>
-
-      <div class="main-shell">
-        <header class="topbar">
-          <button class="mobile-menu" type="button" data-action="toggle-menu" aria-label="Open navigation"><span data-icon="menu"></span></button>
-          <div class="topbar-title">
-            <p class="topbar-context">Gamuda Football Club</p>
-            <h1 id="pageTitle">Overview</h1>
-          </div>
-          <div class="topbar-actions">
-            <span class="save-state" id="saveState" aria-live="polite">Saved locally</span>
-            <button class="button button-primary" type="button" data-action="quick-match"><span data-icon="plus"></span><span>New match</span></button>
-          </div>
-        </header>
-        <main class="app-content" id="appContent" tabindex="-1"></main>
-      <footer class="workspace-footer"><span>GFC club desk</span><span>Local workspace · Gamuda Football Club</span></footer>
-      </div>
+      </header>
+      <h1 id="pageTitle" class="visually-hidden">Hub</h1>
+      <main class="app-content" id="appContent" tabindex="-1"></main>
     </div>
     <dialog class="dialog" id="modal" aria-labelledby="modalTitle"></dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

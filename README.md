@@ -42,3 +42,10 @@ The app bundles the circular logo from Logo/GFC Circle.jpg and finished player c
 
 ## Match pack
 Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darken, vignette, grain, accent colour, heading font, feed or story size) shared by seven posters: Next match, Matchday, Full time, Line-up A/B and Squad list A/B. Drag any text on the poster, edit its words, size and position, hide it, or reset it. "Copy style from" reuses another match's look. Exports are 1080 px PNGs. A PSD is flattened into one background; its layers are not kept.
+
+## v3 revamp (game-style UI)
+- New look: top bar with six pages (Hub, Matches, Squad, Formation, Match pack, Club), a level chip, and angled panels. Styles live in `ui.css` (loaded after `styles.css`). On phones the nav moves to a bottom bar.
+- Hub: next match with countdown, club level and XP, daily streak, top-rated cards, achievements, backup and restore.
+- Formation: EA FC-style pitch. Drag a card anywhere; drop on a card to swap, on the bench to take it off. Bench cards dropped on the pitch join the nearest empty position. "Reset positions" snaps everyone back to the formation.
+- Poster studio is gone: Match pack covers it. Growth and the Instagram planner are tabs under Club.
+- XP is worked out from your data (achievements, posters exported); streak counts days the app was opened.

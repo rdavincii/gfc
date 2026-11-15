@@ -20,7 +20,7 @@
   // Accepts anything (old localStorage data, a backup file, nothing) and returns safe, complete app data.
   function normalize(raw){
     raw=raw&&typeof raw==='object'?raw:{};
-    const d={squad:Array.isArray(raw.squad)?raw.squad:initialSquad,cardTemplates:Array.isArray(raw.cardTemplates)?raw.cardTemplates.filter(t=>t&&t.id):[],activeCardTemplateId:raw.activeCardTemplateId||'gfc-classic',cardTemplateFilter:raw.cardTemplateFilter||'all',matches:raw.matches||[],growth:raw.growth||[],posts:raw.posts||[],formation:raw.formation||{size:11,shape:'4-3-3',slots:{},bench:[]},studio:raw.studio||{type:'next',opponent:'',competition:'',date:'',venue:'',home:0,away:'',headline:'NEXT MATCH',photo:'assets/brand/match-action.jpg',customPhoto:''}};
+    const d={squad:Array.isArray(raw.squad)?raw.squad:initialSquad,cardTemplates:Array.isArray(raw.cardTemplates)?raw.cardTemplates.filter(t=>t&&t.id):[],activeCardTemplateId:raw.activeCardTemplateId||'gfc-classic',cardTemplateFilter:raw.cardTemplateFilter||'all',matches:raw.matches||[],growth:raw.growth||[],posts:raw.posts||[],formation:raw.formation||{size:11,shape:'4-3-3',slots:{},bench:[]}};
     d.cardTemplates.forEach(t=>{if(!Array.isArray(t.layers))t.layers=defaultCardTemplate().layers;t.width=t.width||902;t.height=t.height||1389;});
     if(!d.cardTemplates.some(t=>t.id==='gfc-classic'))d.cardTemplates.unshift(defaultCardTemplate());
     const known=id=>id==='gfc-original'||d.cardTemplates.some(t=>t.id===id);
@@ -35,19 +35,17 @@
     if(old.slots&&Object.keys(old.slots).length&&!d.lineups.practice)d.lineups.practice={A:{size:old.size,shape:old.shape,slots:old.slots}};
     d.formation={matchId:old.matchId||'',team:old.team==='B'?'B':'A',colors:{primary:'#ed1c24',base:'#160b0e',line:'#fff7f5',...(old.colors||{})}};
     if(d.formation.matchId&&!d.matches.some(x=>x.id===d.formation.matchId))d.formation.matchId='';
-    for(const set of Object.values(d.lineups)){const seen=new Set();for(const team of ['A','B']){const t=set[team];if(!t||typeof t!=='object'){delete set[team];continue;}t.size=t.size===7?7:11;if(!shapesFor(t.size).includes(t.shape))t.shape=shapesFor(t.size)[0];t.slots=t.slots&&typeof t.slots==='object'?t.slots:{};const valid=new Set();formationLayers(t.shape).forEach((line,li)=>line.forEach((_,i)=>valid.add(`${li}-${i}`)));for(const [key,id] of Object.entries(t.slots)){if(!valid.has(key)||!d.squad.some(p=>p.id===id)||seen.has(id))delete t.slots[key];else seen.add(id);}}}
-    d.studio={format:'feed',fit:'crop',focusX:50,focusY:45,...d.studio};
-    if(!d.studio.opponent&&d.studio.home===0&&d.studio.away===0)d.studio.home=d.studio.away='';
+    for(const set of Object.values(d.lineups)){const seen=new Set();for(const team of ['A','B']){const t=set[team];if(!t||typeof t!=='object'){delete set[team];continue;}t.size=t.size===7?7:11;if(!shapesFor(t.size).includes(t.shape))t.shape=shapesFor(t.size)[0];t.slots=t.slots&&typeof t.slots==='object'?t.slots:{};{const pos={};for(const [k,v] of Object.entries(t.pos&&typeof t.pos==='object'?t.pos:{}))if(v&&Number.isFinite(+v.x)&&Number.isFinite(+v.y))pos[k]={x:Math.min(.94,Math.max(.06,+v.x)),y:Math.min(.95,Math.max(.05,+v.y))};t.pos=pos;}const valid=new Set();formationLayers(t.shape).forEach((line,li)=>line.forEach((_,i)=>valid.add(`${li}-${i}`)));for(const [key,id] of Object.entries(t.slots)){if(!valid.has(key)||!d.squad.some(p=>p.id===id)||seen.has(id))delete t.slots[key];else seen.add(id);}for(const k of Object.keys(t.pos))if(!t.slots[k])delete t.pos[k];}}
+    d.progress={seen:Array.isArray(raw.progress?.seen)?raw.progress.seen.filter(x=>typeof x==='string'):[],exports:Math.max(0,Math.floor(Number(raw.progress?.exports))||0),days:Array.isArray(raw.progress?.days)?raw.progress.days.filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)).slice(-400):[]};
     return d;
   }
   let page = 'overview';
   let toastTimer;
-  let posterPaint=Promise.resolve();
   let pendingTacticPlayer=null;
   let activeTacticDrag=null;
   let suppressTacticClickUntil=0;
   const posterImages=new Map();
-  const pages = {overview:'Overview',matches:'Matches',studio:'Poster studio',packs:'Match pack',squad:'Squad',formation:'Formation',growth:'Club growth',instagram:'Instagram planner'};
+  const pages = {overview:'Hub',matches:'Matches',packs:'Match pack',squad:'Squad',formation:'Formation',growth:'Club',instagram:'Club'};
   // Storage: IndexedDB first (large imported artwork fits), localStorage as legacy source and fallback.
   let dbPromise,pendingSaves=0,saveChain=Promise.resolve(),saveTimer;
   const openDb=()=>dbPromise||(dbPromise=new Promise((resolve,reject)=>{if(!window.indexedDB)return reject(new Error('IndexedDB is unavailable'));const req=indexedDB.open('gfc-club-desk',1);req.onupgradeneeded=()=>req.result.createObjectStore('kv');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('IndexedDB is blocked'));}));
@@ -63,12 +61,12 @@
   const setSaveState=text=>{const el=$('#saveState');if(el)el.textContent=text;};
   // Returns a promise: true when the data reached storage. Callers that can fail (imports, template saves) await it and roll back.
   function persist(message='Saved locally'){
-    const snap=structuredClone({...data,studio:{...data.studio,customPhoto:''},savedAt:Date.now()});
+    const snap=structuredClone({...data,savedAt:Date.now()});
     pendingSaves++;setSaveState('Saving…');
     const run=saveChain
       .then(async()=>{try{await dbRun('readwrite',s=>s.put(snap,STORE));}catch(dbError){console.warn('Database save failed; trying localStorage.',dbError);localStorage.setItem(STORE,JSON.stringify(snap));}})
       .then(()=>true,error=>{console.error(error);toast('Could not save. Export a club backup now, then free up browser storage or use smaller images.');return false;})
-      .then(ok=>{pendingSaves--;setSaveState(ok?message:'Not saved · export backup');return ok;});
+      .then(ok=>{pendingSaves--;setSaveState(ok?message:'Not saved · export backup');if(ok)checkProgress();return ok;});
     saveChain=run;return run;
   }
   // For high-frequency edits (typing, colour pickers): saves 300 ms after the last change.
@@ -81,7 +79,7 @@
   }
   async function boot(){
     const {raw,migrate}=await loadStored();
-    data=normalize(raw);await ensureFonts();
+    data=normalize(raw);await ensureFonts();if(!data.progress.days.includes(today()))data.progress.days.push(today());data.progress.seen.push(...ACHIEVEMENTS.filter(a=>!data.progress.seen.includes(a[0])&&a[4]()).map(a=>a[0]));persistSoon();
     try{navigator.storage?.persist?.();}catch{}
     setPage('overview');
     if(migrate)persist('Moved to browser database');
@@ -90,16 +88,24 @@
   function toast(message) { const el=$('#toast'); el.textContent=message; el.classList.add('is-visible'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('is-visible'),Math.max(2600,String(message).length*60)); }
   const fmtDate = d => d ? new Date(`${d}T12:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}) : 'Date to be confirmed';
   const fmtTime = d => d ? new Date(d).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
-  function setPage(key) { if(!pages[key]) return; if(key!=='formation')pendingTacticPlayer=null; page=key; $$('.nav-item[data-nav]').forEach(b=>{b.classList.toggle('is-active',b.dataset.nav===key); if(b.dataset.nav===key)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}); $('#pageTitle').textContent=pages[key]; $('#appContent').innerHTML=views[key](); if(key==='studio') addStudioControls(); if(key==='packs') bindPack(); if(key==='formation') addFormationColors(); $('#sidebar').classList.remove('is-open'); bindView(); if(key==='squad'||key==='formation')requestAnimationFrame(renderDynamicCards);if(key==='squad')showStorage(); }
+  function setPage(key) { if(!pages[key]) return; if(key!=='formation')pendingTacticPlayer=null; page=key; $$('.nav-item[data-nav]').forEach(b=>{const nk=key==='instagram'?'growth':key;b.classList.toggle('is-active',b.dataset.nav===nk); if(b.dataset.nav===nk)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}); $('#pageTitle').textContent=pages[key]; $('#appContent').innerHTML=views[key](); if(key==='packs') bindPack();  scrollTo(0,0); bindView(); renderChip(); if(key==='squad'||key==='formation'||key==='overview')requestAnimationFrame(renderDynamicCards);if(key==='squad')showStorage(); }
   const heading=(title,desc,action='')=>`<div class="page-heading"><div class="page-heading-copy"><p class="eyebrow">GAMUDA FOOTBALL CLUB</p><h2>${title}</h2><p class="lead">${desc}</p></div>${action?`<div class="page-actions">${action}</div>`:''}</div>`;
   const btn=(label,action,cls='button button-primary',extra='')=>`<button class="${cls}" type="button" data-action="${action}" ${extra}>${label}</button>`;
   const empty=(title,body,action,label)=>`<div class="empty-state"><span class="empty-mark">G</span><h3>${title}</h3><p>${body}</p>${action?btn(label,action,'button button-secondary'):''}</div>`;
   const upcoming=()=>[...data.matches].filter(m=>m.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))[0];
   const matchRows=()=> [...data.matches].sort((a,b)=>a.date.localeCompare(b.date)).map(m=>`<article class="match-row ${m.date<today()?'is-complete':''}"><div class="match-row-main"><span class="meta-label">${fmtDate(m.date)}${m.time?` · ${safe(m.time)}`:''}</span><h3>${safe(m.opponent||'Opponent to be confirmed')}</h3><span>${safe(m.competition||'Friendly')}${m.venue?` · ${safe(m.venue)}`:''}</span></div><div class="match-row-score">${m.home!=null&&m.away!=null?`${m.home} — ${m.away}`:'VS'}</div><div class="table-actions">${btn('Poster','poster-for-'+m.id,'button button-quiet button-small')}${btn('Edit','edit-match-'+m.id,'button button-quiet button-small')}${btn('Remove','delete-match-'+m.id,'button button-quiet button-small')}</div></article>`).join('');
   const views={
-    overview:()=>{const n=upcoming();return `<section class="club-hero"><div class="club-hero-copy"><p class="eyebrow">YOUR CLUB, IN ONE PLACE</p><h2>Make every match<br>count.</h2><p>Manage fixtures, shape your squad, and keep your club story moving.</p><div class="hero-actions">${btn('Create matchday','quick-match')} ${btn('Build a poster','goto-studio','button button-secondary')}</div></div><div class="club-hero-photo"><img src="assets/brand/match-action.jpg" alt="Gamuda FC players in match action"><span class="club-hero-mark"><img src="assets/brand/gfc-circle.jpg" alt="">Gamuda FC</span></div></section><div class="dashboard-top"><section class="panel match-summary"><div class="panel-header"><div><p class="eyebrow">UP NEXT</p><h3>${n?safe(n.opponent||'Matchday'): 'Your next match'}</h3></div>${btn('All matches','goto-matches','button button-quiet button-small')}</div>${n?`<div class="match-detail"><strong>${fmtDate(n.date)}</strong><span>${safe(n.time||'Time TBC')} · ${safe(n.competition||'Friendly')}</span><span>${safe(n.venue||'Venue to be confirmed')}</span></div>`:empty('No fixture added yet','Add a match to prepare a matchday poster and keep your season organised.','quick-match','Add a match')}</section><section class="panel mini-squad"><div class="panel-header"><div><p class="eyebrow">SQUAD</p><h3>${data.squad.length} player cards</h3></div>${btn('Manage squad','goto-squad','button button-quiet button-small')}</div><div class="mini-player-list">${data.squad.slice(0,5).map(p=>`<span class="mini-player"><img src="${safe(p.card||p.photo)}" alt=""><b>${safe(p.name)}</b><i>#${safe(p.number)}</i></span>`).join('')}</div><p class="caption">Imported from your GFC player-card project.</p></section></div><section class="dashboard-bottom"><div class="section-heading"><div><p class="eyebrow">CLUB DESK</p><h3>Keep the club moving</h3></div></div><div class="stat-strip"><button class="stat-cell" data-nav="matches"><span class="stat-label">Fixtures</span><strong class="stat-value">${data.matches.length}</strong><span>Manage your season</span></button><button class="stat-cell" data-nav="formation"><span class="stat-label">Line-up</span><strong class="stat-value">${safe(board().shape)}</strong><span>Set your formation</span></button><button class="stat-cell" data-nav="growth"><span class="stat-label">Growth log</span><strong class="stat-value">${data.growth.length}</strong><span>Recorded snapshots</span></button><button class="stat-cell" data-nav="instagram"><span class="stat-label">Content queue</span><strong class="stat-value">${data.posts.filter(p=>p.status==='planned').length}</strong><span>Planned posts</span></button></div></section>`;},
+    overview:()=>{
+      const n=upcoming(),l=levelInfo(),st=streak(),days=n?Math.round((new Date(n.date+'T00:00:00')-new Date(today()+'T00:00:00'))/864e5):null;
+      const top=[...data.squad].filter(p=>p.rating!=null).sort((a,b)=>b.rating-a.rating).slice(0,6);
+      const tiles=[['matches','📅','Matches','Fixtures and results'],['squad','🃏','Squad','Cards and templates'],['formation','⚽','Formation','Team A and Team B'],['packs','🎨','Match pack','Posters for a match'],['growth','📈','Club','Growth and content']];
+      return `<section class="hub-hero"><div class="hub-next"><p class="eyebrow">NEXT MATCH</p>${n?`<h2>GFC <i>VS</i> ${safe((n.opponent||'TBC').toUpperCase())}</h2><p class="hub-when">${fmtDate(n.date)}${n.time?' · '+safe(n.time):''}${n.venue?' · '+safe(n.venue):''}</p><div class="hub-count"><b>${days<=0?'TODAY':days}</b><small>${days<=0?'MATCHDAY':days===1?'DAY TO GO':'DAYS TO GO'}</small></div><div class="hero-actions">${btn('Set the line-up','goto-formation')}${btn('Match pack','poster-for-'+n.id,'button button-secondary')}</div>`:`<h2>NO MATCH YET</h2><p class="hub-when">Add a fixture to unlock your line-up and poster pack.</p><div class="hero-actions">${btn('Add a match','quick-match')}</div>`}</div><div class="hub-level"><p class="eyebrow">CLUB LEVEL</p><div class="hub-lv"><b>${l.level}</b><span>${safe(l.title)}</span></div><div class="xp-bar xp-big"><i style="width:${l.pct}%"></i></div><p class="caption">${l.xp} XP · ${l.next} to level ${l.level+1}</p><div class="hub-streak"><span>🔥</span><b>${st}</b><small>day streak</small></div></div></section>
+<section class="hub-tiles">${tiles.map(([k,i,a,b])=>`<button class="hub-tile" type="button" data-nav="${k}"><span class="hub-tile-icon">${i}</span><strong>${a}</strong><small>${b}</small></button>`).join('')}</section>
+${top.length?`<section class="hub-block"><div class="section-heading"><div><p class="eyebrow">SQUAD</p><h3>Top rated</h3></div></div><div class="hub-cards">${top.map(p=>`<div class="hub-card"><img src="${safe(p.card||p.photo||BLANK_IMG)}" data-template-player="${safe(p.id)}" alt="${safe(p.name)}"></div>`).join('')}</div></section>`:''}
+<section class="hub-block"><div class="section-heading"><div><p class="eyebrow">ACHIEVEMENTS</p><h3>${data.progress.seen.length} of ${ACHIEVEMENTS.length} unlocked</h3></div></div><div class="ach-grid">${ACHIEVEMENTS.map(([id,name,desc,xp])=>{const done=data.progress.seen.includes(id);return `<div class="ach ${done?'is-done':''}"><span class="ach-badge">${done?'★':'🔒'}</span><span><strong>${safe(name)}</strong><small>${safe(desc)}</small></span><b>+${xp}</b></div>`;}).join('')}</div></section>
+<section class="hub-block hub-data"><div><p class="eyebrow">CLUB DATA</p><p class="caption">Everything is saved on this device. Make a backup now and then.</p></div><div class="hero-actions">${btn('Export backup','export-backup','button button-secondary')}${btn('Restore backup','import-backup','button button-quiet')}</div></section>`;
+    },
     matches:()=>`${heading('Fixtures & results','Build a clear season schedule. Add scores after the final whistle.',btn('＋ New match','quick-match'))}<section class="panel match-list">${data.matches.length?matchRows():empty('Fixtures start here','Add your next match, then use it to build a club poster.','quick-match','Add a match')}</section>`,
-    studio:()=>`${heading('Poster studio','Create a club-ready graphic and export a crisp 2K portrait PNG.',btn('Export 2K PNG','export-poster'))}<div class="studio-layout"><section class="panel poster-form"><div class="poster-form-section"><label class="field-label" for="posterType">Poster type</label><select id="posterType" class="select"><option value="next">Next match</option><option value="matchday">Matchday</option><option value="score">Full time</option><option value="lineup">Starting XI</option><option value="player">Player spotlight</option></select><div class="type-selector"><button class="type-choice" data-type="next">NEXT MATCH</button><button class="type-choice" data-type="matchday">MATCHDAY</button><button class="type-choice" data-type="score">FULL TIME</button><button class="type-choice" data-type="lineup">LINE-UP</button></div></div><div class="form-grid"><label class="field"><span class="field-label">Opponent / headline</span><input class="input" id="posterOpponent" value="${safe(data.studio.opponent)}" placeholder="Opponent name"></label><label class="field"><span class="field-label">Competition</span><input class="input" id="posterCompetition" value="${safe(data.studio.competition)}" placeholder="League / friendly"></label><label class="field"><span class="field-label">Date</span><input class="input" type="date" id="posterDate" value="${safe(data.studio.date)}"></label><label class="field"><span class="field-label">Venue</span><input class="input" id="posterVenue" value="${safe(data.studio.venue)}" placeholder="Ground"></label><label class="field"><span class="field-label">GFC score</span><input class="input" type="number" min="0" id="posterHome" value="${safe(data.studio.home)}"></label><label class="field"><span class="field-label">Opponent score</span><input class="input" type="number" min="0" id="posterAway" value="${safe(data.studio.away)}"></label><label class="field field-span-2"><span class="field-label">Background photo</span><input class="input" type="file" id="posterPhoto" accept="image/*"><span class="field-help">Use your match photos. The image stays in this browser for this session.</span></label></div><div class="poster-actions">${btn('Use next fixture','load-next','button button-secondary')}${btn('Manage fonts','manage-fonts','button button-quiet')}${btn('Export 2K PNG','export-poster')}</div><p class="resolution-note">Export size: 2048 × 2560 px · PNG</p></section><section class="poster-stage-panel"><div class="poster-stage"><canvas class="poster-canvas" id="posterCanvas" width="640" height="800" aria-label="Poster preview"></canvas></div><p class="caption">Preview shown at reduced size. Your export is 2K.</p></section></div>`,
     squad:()=>{
       const active=data.cardTemplates.find(t=>t.id===data.activeCardTemplateId)||data.cardTemplates[0],filter=data.cardTemplateFilter||'all';
       const countFor=id=>data.squad.filter(p=>p.templateId===id).length,roster=data.squad.filter(p=>filter==='all'||p.templateId===filter);
@@ -107,13 +113,24 @@
       return `${heading('Squad & card templates','Build a reusable card design, then apply it to players across the squad.',btn('＋ Create player card','card-editor'))}<section class="template-workbench panel"><div class="template-workbench-head"><div><p class="eyebrow">CARD TEMPLATE STUDIO</p><h3>Import or choose a card design</h3><p class="caption">Templates keep their own photo, logo, number, name, position, and rating placements. Editing a template redraws every player card that uses it.</p></div><div class="template-workbench-actions">${btn('Import PSD / image','import-template','button button-secondary')}${btn('Arrange active template','edit-active-template','button button-primary')}${btn('Apply to all players','apply-active-template','button button-quiet')}${btn('Manage fonts','manage-fonts','button button-quiet')}</div></div><input id="cardTemplateFile" type="file" accept=".psd,.psb,image/png,image/jpeg,image/webp" hidden><p class="template-import-note">Accepts PNG, JPG, WebP, and PSD / PSB saved as 8-bit RGB or grayscale. A PSD / PSB imports as one flattened picture: Photoshop layers, masks, smart objects, text and effects are not editable here, so hide sample player art and text in Photoshop first. The player photo, crest, name, number, position, and rating stay movable app layers on top.</p><div class="template-controls"><label class="field"><span class="field-label">Template for new cards</span><select id="activeCardTemplate" class="select">${data.cardTemplates.map(t=>`<option value="${safe(t.id)}" ${t.id===active?.id?'selected':''}>${safe(t.name)}</option>`).join('')}</select></label><label class="field"><span class="field-label">Filter squad cards</span><select id="cardTemplateFilter" class="select"><option value="all" ${filter==='all'?'selected':''}>All players · ${data.squad.length}</option><option value="gfc-original" ${filter==='gfc-original'?'selected':''}>Original GFC cards · ${countFor('gfc-original')}</option>${data.cardTemplates.map(t=>`<option value="${safe(t.id)}" ${filter===t.id?'selected':''}>${safe(t.name)} · ${countFor(t.id)}</option>`).join('')}</select></label></div><div class="template-gallery">${data.cardTemplates.map(t=>`<article class="template-tile ${t.id===active?.id?'is-active':''}"><button class="template-thumb" type="button" data-action="activate-template-${safe(t.id)}" aria-label="Use ${safe(t.name)} template"><img data-template-thumb="${safe(t.id)}" src="${BLANK_IMG}" alt=""><i>${t.id===active?.id?'ACTIVE':'USE TEMPLATE'}</i></button><div class="template-tile-copy"><strong>${safe(t.name)}</strong><small>${countFor(t.id)} player cards</small></div><div class="template-tile-actions"><button class="button button-quiet button-small" type="button" data-action="edit-template-${safe(t.id)}">Arrange</button>${btn('Duplicate','duplicate-template-'+safe(t.id),'button button-quiet button-small')}${btn('Apply to squad','apply-template-'+safe(t.id),'button button-secondary button-small')}${t.id==='gfc-classic'?'':btn('Delete','delete-template-'+safe(t.id),'button button-quiet button-small')}</div></article>`).join('')}</div><p class="caption storage-note" id="storageNote"></p></section><div class="squad-roster-heading"><div><p class="eyebrow">PLAYER ROSTER</p><h3>${safe(filterName)}</h3></div><span>${roster.length} shown</span></div><div class="player-card-grid">${roster.map(p=>cardTile(p)).join('')||'<p class="caption">No players use this template yet. Choose a template from a player’s card menu, or create a player card with this template.</p>'}</div>`;
     },
     packs:()=>packView(),
-    formation:()=>{const bd=board(),shapes=shapesFor(bd.size);const n=bd.shape;const layers=formationLayers(n);const used=[];const lines=layers.map((line,li)=>`<div class="pitch-line">${line.map((pos,i)=>{const key=`${li}-${i}`,id=bd.slots[key]||'',player=data.squad.find(p=>p.id===id);if(id)used.push(id);return `<div class="pitch-slot ${player?'has-player':''}" data-slot="${key}" tabindex="0" role="group" style="left:${(i+1)*100/(line.length+1)}%;top:${12+li*72/(layers.length-1)}%" aria-label="${player?safe(player.name):'Empty '+pos+' slot'}">${player?`<div class="tactic-player ${pendingTacticPlayer?.id===player.id?'is-selected':''}" data-tactic-player="${player.id}" data-from-slot="${key}" tabindex="0" role="button" aria-label="${safe(player.name)}, ${safe(player.position)}, shirt ${safe(player.number)}. Drag or tap, then choose a position."><img src="${safe(player.card||player.photo)}" data-template-player="${safe(player.id)}" alt=""><span class="tactic-player-label"><b>${safe(player.name)}</b><small>${safe(player.position)} · #${safe(player.number)}${player.rating!=null?' · '+safe(player.rating):''}</small></span></div>`:`<span class="tactic-empty"><i>＋</i><small>${pos}</small></span>`}</div>`}).join('')}</div>`).join('');const other=otherTeamIds(),subs=data.squad.filter(p=>!used.includes(p.id)&&!other.includes(p.id));return `${heading('Formation board','Pick a match, then build Team A and Team B. Drag a card to the pitch or tap a card, then tap a position.',btn('Create formation poster','formation-poster'))}${matchBar()}<section class="panel formation-toolbar"><label class="field-label" for="formationSize">Squad format</label><select id="formationSize" class="select"><option value="11" ${bd.size===11?'selected':''}>11-a-side</option><option value="7" ${bd.size===7?'selected':''}>7-a-side</option></select><label class="field-label" for="formationShape">Formation</label><select id="formationShape" class="select">${shapes.map(s=>`<option ${s===n?'selected':''}>${s}</option>`).join('')}</select>${btn('Auto-fill','auto-fill','button button-secondary')}<span class="caption">Drop a player on a position to replace its player. Drag a player back to substitutes to clear the position.</span></section><section class="tactics-screen"><div class="tactics-screen-head"><div><span class="tactics-live-dot"></span><strong>TEAM MANAGEMENT</strong><span>TEAM ${data.formation.team} · ${bd.size}-A-SIDE · ${safe(n)}</span></div><span class="tactics-club-tag"><img src="assets/brand/gfc-circle.jpg" alt=""> GAMUDA FC</span></div><div class="pitch-wrap"><div class="pitch tactics-pitch" data-tactics-pitch data-lines="${layers.length}" style="--lines:${layers.length}"><div class="pitch-box"><div class="pitch-box-top"></div><div class="pitch-box-bottom"></div></div><div class="pitch-circle"></div>${lines}</div><p class="caption pitch-instruction">Drag or tap player cards to move them · Tap a player, then tap a position to assign</p></div><section class="substitutes" data-tactics-bench><div class="substitutes-head"><div><p class="eyebrow">SQUAD DECK</p><h3>Substitutes</h3></div><span>${subs.length} available</span></div><div class="substitute-deck">${subs.map(p=>`<div class="substitute-player ${pendingTacticPlayer?.id===p.id?'is-selected':''}" data-tactic-player="${p.id}" data-from-slot="" tabindex="0" role="button" aria-label="${safe(p.name)}, ${safe(p.position)}, shirt ${safe(p.number)}. Drag or tap, then choose a position."><img src="${safe(p.card||p.photo)}" data-template-player="${safe(p.id)}" alt=""><span><b>${safe(p.name)}</b><small>${safe(p.position)} · #${safe(p.number)}${p.rating!=null?' · '+safe(p.rating):''}</small></span></div>`).join('')||'<p class="caption">All available players are on the pitch.</p>'}</div></section></section>`;},
+    formation:()=>{
+      const bd=board(),shapes=shapesFor(bd.size),n=bd.shape,layers=formationLayers(n),used=[];
+      const tier=p=>p.rating==null?'tier-gold':p.rating>=85?'tier-icon':p.rating>=75?'tier-gold':p.rating>=65?'tier-silver':'tier-bronze';
+      const slots=layers.map((line,li)=>line.map((pos,i)=>{
+        const key=`${li}-${i}`,id=bd.slots[key]||'',player=data.squad.find(p=>p.id===id),xy=slotXY(bd,li,i,line.length,layers.length);if(id)used.push(id);
+        return `<div class="fc-slot ${player?'has-player':''}" style="left:${xy.x*100}%;top:${xy.y*100}%">${player?`<div class="fc-card ${tier(player)} ${pendingTacticPlayer?.id===player.id?'is-selected':''}" data-tactic-player="${player.id}" data-from-slot="${key}" tabindex="0" role="button" aria-label="${safe(player.name)}, ${safe(player.position)}, shirt ${safe(player.number)}. Drag to move, or tap and then tap a spot."><img src="${safe(player.card||player.photo||BLANK_IMG)}" data-template-player="${safe(player.id)}" alt="" draggable="false"><span class="fc-name">${safe(player.name)}</span></div>`:`<span class="fc-empty" aria-label="Empty ${pos} position">${pos}</span>`}</div>`;
+      }).join('')).join('');
+      const other=otherTeamIds(),subs=data.squad.filter(p=>!used.includes(p.id)&&!other.includes(p.id)),rated=used.map(id=>data.squad.find(p=>p.id===id)).filter(p=>p&&p.rating!=null),ovr=rated.length?Math.round(rated.reduce((s,p)=>s+Number(p.rating),0)/rated.length):'–';
+      return `${heading('Formation','Drag cards anywhere on the pitch. Drop one on another card to swap, or back on the bench to take it off.',btn('Create formation poster','formation-poster'))}${matchBar()}<section class="panel formation-toolbar"><label class="field-label" for="formationSize">Squad format</label><select id="formationSize" class="select"><option value="11" ${bd.size===11?'selected':''}>11-a-side</option><option value="7" ${bd.size===7?'selected':''}>7-a-side</option></select><label class="field-label" for="formationShape">Formation</label><select id="formationShape" class="select">${shapes.map(s=>`<option ${s===n?'selected':''}>${s}</option>`).join('')}</select>${btn('Auto-fill','auto-fill','button button-secondary')}${Object.keys(bd.pos||{}).length?btn('Reset positions','reset-positions','button button-quiet'):''}<span class="fc-ovr"><small>TEAM OVR</small><b>${ovr}</b></span></section><section class="fc-screen"><div class="fc-pitch-wrap"><div class="fc-pitch" data-pitch><div class="fc-mark fc-mark-half"></div><div class="fc-mark fc-mark-circle"></div><div class="fc-mark fc-mark-box-top"></div><div class="fc-mark fc-mark-box-bottom"></div>${slots}</div></div><aside class="fc-bench substitutes"><div class="substitutes-head"><div><p class="eyebrow">BENCH</p><h3>Squad</h3></div><span>${subs.length} available</span></div><div class="fc-deck">${subs.map(p=>`<div class="fc-card fc-bench-card ${tier(p)} ${pendingTacticPlayer?.id===p.id?'is-selected':''}" data-tactic-player="${p.id}" data-from-slot="" tabindex="0" role="button" aria-label="${safe(p.name)}, ${safe(p.position)}, shirt ${safe(p.number)}. Drag onto the pitch, or tap and then tap a spot."><img src="${safe(p.card||p.photo||BLANK_IMG)}" data-template-player="${safe(p.id)}" alt="" draggable="false"><span class="fc-name">${safe(p.name)}</span></div>`).join('')||'<p class="caption">Everyone available is on the pitch.</p>'}</div></aside></section>`;
+    },
     growth:()=>{const latest=data.growth[data.growth.length-1];const metric=key=>latest?.[key]??'—';return `${heading('Club growth','Record real numbers over time to see what is working.',btn('＋ Add snapshot','add-growth'))}<section class="growth-metrics"><div class="growth-metric"><span class="growth-label">Instagram followers</span><strong class="growth-number">${metric('followers')}</strong></div><div class="growth-metric"><span class="growth-label">Active squad</span><strong class="growth-number">${metric('members')}</strong></div><div class="growth-metric"><span class="growth-label">Average attendance</span><strong class="growth-number">${metric('attendance')}</strong></div><div class="growth-metric"><span class="growth-label">Post reach</span><strong class="growth-number">${metric('reach')}</strong></div></section><section class="panel"><div class="panel-header"><div><p class="eyebrow">MEASURED BY YOU</p><h3>Growth over time</h3></div><span class="caption">Only your recorded snapshots appear here.</span></div>${data.growth.length>1?`<div class="growth-chart">${chartSvg()}</div>`:empty(data.growth.length?'Add another snapshot to see a trend':'No growth data yet','Add a monthly snapshot from your club records. Nothing is estimated.')}</section><section class="panel snapshot-list"><div class="panel-header"><h3>Snapshots</h3></div>${data.growth.length?[...data.growth].sort((a,b)=>b.date.localeCompare(a.date)).map(g=>`<div class="post-row"><div class="post-row-main"><strong>${fmtDate(g.date)}</strong><span>${g.followers??'—'} followers · ${g.members??'—'} players · ${g.attendance??'—'} attendance · reach ${g.reach??'—'}</span></div>${btn('Remove','delete-growth-'+g.id,'button button-quiet button-small')}</div>`).join(''):'<p class="caption">Your snapshots will be listed here.</p>'}</section>`;},
     instagram:()=>{const upcomingPosts=[...data.posts].sort((a,b)=>a.dateTime.localeCompare(b.dateTime));return `${heading('Instagram planner','Prepare captions and schedule reminders for @genmudafc.',btn('＋ Plan a post','add-post'))}<div class="planner-layout"><section class="panel"><div class="panel-header"><div><p class="eyebrow">CONTENT QUEUE</p><h3>Upcoming posts</h3></div><span>${upcomingPosts.filter(p=>p.status==='planned').length} planned</span></div>${upcomingPosts.length?`<div class="post-list">${upcomingPosts.map(p=>`<article class="post-row"><div class="post-thumb">${p.image?`<img src="${safe(p.image)}" alt="">`:'GFC'}</div><div class="post-row-main"><span class="meta-label">${fmtDate(p.dateTime.slice(0,10))} · ${fmtTime(p.dateTime)}</span><strong>${safe(p.title)}</strong><span>${safe(p.caption).slice(0,100)}</span><span class="status-tag ${p.status==='posted'?'is-complete':'is-planned'}">${p.status==='posted'?'Marked posted':'Planned reminder'}</span></div><div class="table-actions">${p.status==='planned'?btn('Mark posted','posted-'+p.id,'button button-secondary button-small'):''}${btn('Remove','delete-post-'+p.id,'button button-quiet button-small')}</div></article>`).join('')}</div>`:empty('Your content queue is clear','Plan matchday announcements, results, and club updates here.','add-post','Plan a post')}</section><aside class="panel"><p class="eyebrow">PUBLISHING</p><h3>Keep @genmudafc on schedule</h3><p class="caption">This planner saves locally and can prepare reminders and captions. Direct Instagram publishing needs a connected Meta business account and authorised publishing setup.</p><div class="notice"><strong>Manual publishing is ready</strong><span>Download your poster, copy the caption, then publish in Instagram. Mark it posted here afterward.</span></div><div class="poster-actions">${btn('Export calendar (.ics)','export-ics','button button-secondary')}${btn('Build a poster','goto-studio','button button-quiet')}</div></aside></div>`;}
   };
   const CARD_W=902,CARD_H=1389,PREVIEW_W=451,PREVIEW_H=694;
   const BLANK_IMG='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
   const cardImageCache=new Map(),loadedCardFonts=new Set(),cardUrlCache=new Map();
+  const clubTabs=k=>`<div class="pack-tabs"><button type="button" class="team-tab ${k==='growth'?'is-active':''}" data-nav="growth">Growth</button><button type="button" class="team-tab ${k==='instagram'?'is-active':''}" data-nav="instagram">Instagram planner</button></div>`;
+  {const g=views.growth,ig=views.instagram;views.growth=()=>clubTabs('growth')+g();views.instagram=()=>clubTabs('instagram')+ig();}
   const clamp=(v,min,max)=>Math.min(max,Math.max(min,v)),round1=v=>Math.round(v*10)/10;
   function loadCardImage(src){
     if(!src)return Promise.resolve(null);if(cardImageCache.has(src))return Promise.resolve(cardImageCache.get(src));
@@ -372,6 +389,8 @@
   const peek=(key,team)=>data.lineups[key]?.[team];
   const lineupFor=(key,team)=>{const set=data.lineups[key]||(data.lineups[key]={});return set[team]||(set[team]={size:11,shape:'4-3-3',slots:{}});};
   const board=()=>lineupFor(boardKey(),data.formation.team);
+  // Position of a player slot as a fraction of the pitch: a dragged position wins over the formation's own spot.
+  const slotXY=(team,li,i,n,L)=>team.pos?.[`${li}-${i}`]||{x:(i+1)/(n+1),y:.1+li*.8/(L-1)};
   // A player can be in one team per match, so the other team's players are not offered as substitutes here.
   const otherTeamIds=()=>Object.values(peek(boardKey(),data.formation.team==='A'?'B':'A')?.slots||{});
   const placedCount=(key,team)=>Object.keys(peek(key,team)?.slots||{}).length;
@@ -380,23 +399,17 @@
     const key=boardKey(),matches=[...data.matches].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
     return `<section class="panel match-bar"><label class="field"><span class="field-label">Match</span><select id="formationMatch" class="select"><option value="">Practice board · no match</option>${matches.map(m=>`<option value="${safe(m.id)}" ${m.id===data.formation.matchId?'selected':''}>${safe(matchLabel(m))}</option>`).join('')}</select></label><div class="team-tabs" role="tablist" aria-label="Team line-up">${['A','B'].map(t=>`<button class="team-tab ${t===data.formation.team?'is-active':''}" type="button" role="tab" aria-selected="${t===data.formation.team}" data-team="${t}">Team ${t}<small>${placedCount(key,t)} placed</small></button>`).join('')}</div></section>`;
   }
-  function applyMatchToPoster(matchId){
-    const m=data.matches.find(x=>x.id===matchId),st=data.studio;if(!m)return;
-    Object.assign(st,{opponent:m.opponent||'',competition:m.competition||'',date:m.date||'',venue:m.venue||''});if(m.home!=null)st.home=m.home;if(m.away!=null)st.away=m.away;
-    for(const [id,key] of Object.entries({posterOpponent:'opponent',posterCompetition:'competition',posterDate:'date',posterVenue:'venue',posterHome:'home',posterAway:'away'})){const el=$('#'+id);if(el)el.value=st[key]??'';}
-  }
   function makeFormationPoster(){
     const key=boardKey(),a=placedCount(key,'A'),b=placedCount(key,'B');
-    if(!a&&!b)return toast('Place players on the board first, then create the poster.');
-    if(data.formation.matchId){packUi.matchId=data.formation.matchId;packUi.kind='lineup'+(placedCount(key,data.formation.team)?data.formation.team:a?'A':'B');packUi.selected='';return setPage('packs');}
-    const st=data.studio;st.type='lineup';st.posterLineupMatch=data.formation.matchId;st.posterLineupTeam=placedCount(key,data.formation.team)?data.formation.team:a?'A':'B';applyMatchToPoster(st.posterLineupMatch);
-    persist();setPage('studio');toast('Line-up poster ready. Change teams, fonts or format on the left.');
+    if(!data.formation.matchId)return toast('Choose a match at the top of the board first. Posters are made per match.');
+    if(!a&&!b)return toast('Place players on the pitch first, then create the poster.');
+    packUi.matchId=data.formation.matchId;packUi.kind='lineup'+(placedCount(key,data.formation.team)?data.formation.team:a?'A':'B');packUi.selected='';setPage('packs');
   }
   // ---- Fonts: one library shared by the poster studio and card templates ----
   const BUILT_IN_FONTS=['Winner GFC','Bebas GFC','Arial'],fontFaces=new Map();
   const fontChoices=()=>[...BUILT_IN_FONTS,...data.fonts.map(f=>f.name)];
   const posterFontStack=name=>`"${name||'Winner GFC'}","Winner GFC","Bebas GFC",sans-serif`;
-  const fontUsage=name=>data.cardTemplates.reduce((n,t)=>n+t.layers.filter(l=>l.font===name).length,0)+(data.studio.posterFont===name?1:0);
+  const fontUsage=name=>data.cardTemplates.reduce((n,t)=>n+t.layers.filter(l=>l.font===name).length,0)+Object.values(data.packs).filter(p=>p.font===name).length;
   async function ensureFonts(){
     for(const f of data.fonts){if(fontFaces.has(f.name))continue;try{const face=new FontFace(f.name,`url(${f.src})`);await face.load();document.fonts.add(face);fontFaces.set(f.name,face);}catch(error){console.warn('Font could not be loaded',f.name,error);}}
   }
@@ -417,11 +430,11 @@
   async function removeFont(name){
     const used=fontUsage(name);
     if(!confirm(`Remove “${name}”?${used?` ${used} place${used>1?'s':''} using it will switch to Winner GFC.`:''}`))return false;
-    const previous={fonts:data.fonts,poster:data.studio.posterFont},changed=[];
+    const previous={fonts:data.fonts,packs:Object.entries(data.packs).filter(([,p])=>p.font===name).map(([id])=>id)},changed=[];
     data.cardTemplates.forEach(t=>t.layers.forEach(l=>{if(l.font===name){changed.push(l);l.font='Winner GFC';t.rev=(t.rev||0)+1;}}));
-    if(data.studio.posterFont===name)data.studio.posterFont='';
+    previous.packs.forEach(id=>{data.packs[id].font='';});
     data.fonts=data.fonts.filter(f=>f.name!==name);
-    if(!await persist()){data.fonts=previous.fonts;data.studio.posterFont=previous.poster;changed.forEach(l=>{l.font=name;});return false;}
+    if(!await persist()){data.fonts=previous.fonts;previous.packs.forEach(id=>{data.packs[id].font=name;});changed.forEach(l=>{l.font=name;});return false;}
     const face=fontFaces.get(name);if(face)document.fonts.delete(face);fontFaces.delete(name);return true;
   }
   function fontManager(){
@@ -448,7 +461,7 @@
     ctx.beginPath();ctx.moveTo(L,mid);ctx.lineTo(R,mid);ctx.stroke();ctx.beginPath();ctx.arc(mx,mid,(R-L)*.09,0,Math.PI*2);ctx.stroke();
     ctx.strokeRect(L+(R-L)*.2,T,(R-L)*.6,(B-T)*.14);ctx.strokeRect(L+(R-L)*.34,B-(B-T)*.075,(R-L)*.32,(B-T)*.075);ctx.strokeRect(L+(R-L)*.2,B-(B-T)*.14,(R-L)*.6,(B-T)*.14);
     for(let li=0;li<layers.length;li++){const line=layers[li];for(let i=0;i<line.length;i++){
-      const cx=x+(i+1)*w/(line.length+1),cy=y+(.1+li*.78/(layers.length-1))*h,p=data.squad.find(q=>q.id===team.slots[`${li}-${i}`]),x0=cx-cw/2,y0=cy-chh/2;
+      const sp=slotXY(team,li,i,line.length,layers.length),cx=x+sp.x*w,cy=y+sp.y*h,p=data.squad.find(q=>q.id===team.slots[`${li}-${i}`]),x0=cx-cw/2,y0=cy-chh/2;
       ctx.textAlign='center';
       if(p){
         const im=await posterImg(p.card);
@@ -458,22 +471,6 @@
       }else{ctx.save();ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(255,247,245,.55)';ctx.lineWidth=2;ctx.strokeRect(x0,y0,cw,chh);ctx.restore();ctx.fillStyle='rgba(255,247,245,.7)';ctx.textBaseline='middle';ctx.font=`bold ${Math.max(10,cw*.24)}px ${hf}`;ctx.fillText(line[i],cx,cy);}
     }}
     ctx.restore();
-  }
-  async function drawLineupPoster(ctx,w,h,st,hf){
-    const red=data.formation.colors.primary,key=st.posterLineupMatch||'practice',want=st.posterLineupTeam||'A';
-    let teams=want==='both'?['A','B'].filter(t=>placedCount(key,t)>0):[want];if(!teams.length)teams=['A'];
-    // background: crimson glow fading to near-black, with film grain
-    const g=ctx.createRadialGradient(w*.5,h*.45,w*.1,w*.5,h*.5,h*.75);g.addColorStop(0,'#b5141a');g.addColorStop(.6,'#5e0a10');g.addColorStop(1,'#140306');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='rgba(255,255,255,.05)';for(let i=0;i<1800;i++){const s=(i*9301+49297)%233280;ctx.fillRect(s%w,(s*7)%h,1.4,1.4);}
-    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='rgba(237,28,36,.9)';let hs=w*.27;ctx.font=`bold ${hs}px ${hf}`;while(ctx.measureText('FORMATION').width>w*.96&&hs>20){hs-=4;ctx.font=`bold ${hs}px ${hf}`;}ctx.fillText('FORMATION',w/2,-hs*.38);
-    const sub=[st.opponent?`GFC VS ${st.opponent}`:'',st.date?fmtDate(st.date):'',st.venue].filter(Boolean).join('  ·  ').toUpperCase().slice(0,60);
-    ctx.fillStyle='#fff7f5';ctx.font=`bold 17px ${hf}`;ctx.fillText(sub,w/2,hs*.58);
-    const top=hs*.58+30,bot=h-112,gap=14,W=w-64,H=bot-top,single=teams.length===1;
-    const boxes=single?[[32,top,W,H]]:h>1000?[[32,top,W,(H-gap)/2],[32,top+(H+gap)/2,W,(H-gap)/2]]:[[32,top,(W-gap)/2,H],[32+(W+gap)/2,top,(W-gap)/2,H]];
-    for(let i=0;i<teams.length;i++){const [bx,by,bw,bh]=boxes[i],team=peek(key,teams[i])||{size:11,shape:'4-3-3',slots:{}};await drawPitchPanel(ctx,bx,by,bw,bh,team,hf);
-      ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.fillStyle='#fff7f5';ctx.font=`italic bold 20px ${hf}`;ctx.fillText(team.shape,bx+4,by+bh+22);ctx.textAlign='right';ctx.fillText(`TEAM ${teams[i]}`,bx+bw-4,by+bh+22);}
-    const logo=await posterImg('assets/brand/gfc-circle.jpg');if(logo&&single){ctx.save();ctx.beginPath();ctx.arc(w/2,h-70,24,0,Math.PI*2);ctx.clip();ctx.drawImage(logo,w/2-24,h-94,48,48);ctx.restore();}
-    ctx.textAlign='left';ctx.textBaseline='top';
   }
   // ---- Match pack: one art style per match, shared by every poster of that match ----
   const PACK_W=1080,PACK_KINDS=[['next','Next match'],['matchday','Matchday'],['score','Full time'],['lineupA','Line-up A'],['lineupB','Line-up B'],['rosterA','Squad list A'],['rosterB','Squad list B']];
@@ -607,7 +604,34 @@
     const m=packMatch();if(!m)return;const pack=getPack(m.id),kinds=all?PACK_KINDS.map(k=>k[0]).filter(k=>!/^(lineup|roster)/.test(k)||placedCount(m.id,k.slice(-1))):[packUi.kind];
     if(!kinds.length)return;toast(all?`Exporting ${kinds.length} posters…`:'Exporting…');
     for(const k of kinds){const blob=await packBlob(m,pack,k);if(!blob){toast('Could not export a poster. Please try again.');return;}download(blob,`GFC-${(m.opponent||'match').replace(/[^\w]+/g,'-')}-${k}.png`);if(all)await new Promise(r=>setTimeout(r,500));}
-    toast(all?'Pack exported.':'Poster exported.');
+    data.progress.exports+=kinds.length;persist();toast(all?'Pack exported.':'Poster exported.');
+  }
+  // ---- Club progress: levels, XP, streak and achievements are worked out from the club's own data ----
+  const fullTeam=t=>t&&Object.keys(t.slots).length>=t.size;
+  const ACHIEVEMENTS=[
+    ['fixture','First fixture','Add a match',20,()=>data.matches.length>=1],
+    ['season','Season planner','Have 5 fixtures',40,()=>data.matches.length>=5],
+    ['result','Full time','Log a final score',30,()=>data.matches.some(m=>m.home!=null&&m.away!=null)],
+    ['lineup','Line-up locked','Fill every position in one team',40,()=>Object.values(data.lineups).some(s=>fullTeam(s.A)||fullTeam(s.B))],
+    ['both','Two squads','Fill Team A and Team B for one match',60,()=>Object.values(data.lineups).some(s=>fullTeam(s.A)&&fullTeam(s.B))],
+    ['pack','Art director','Add a background to a match pack',50,()=>Object.values(data.packs).some(p=>p.bg)],
+    ['export','On the feed','Export a poster',30,()=>data.progress.exports>=1],
+    ['content','Content machine','Export 10 posters',80,()=>data.progress.exports>=10],
+    ['template','Card designer','Create your own card template',50,()=>data.cardTemplates.length>1],
+    ['font','Type nerd','Add a font',20,()=>data.fonts.length>=1],
+    ['growth','Growth tracker','Record a growth snapshot',20,()=>data.growth.length>=1],
+    ['planner','Content planner','Plan an Instagram post',20,()=>data.posts.length>=1],
+    ['squad','Full squad','Have 22 players',30,()=>data.squad.length>=22]
+  ];
+  const LEVEL_TITLES=['Rookie','Academy','Starter','Pro','Captain','Legend'];
+  const xpTotal=()=>ACHIEVEMENTS.filter(a=>data.progress.seen.includes(a[0])).reduce((n,a)=>n+a[3],0)+data.progress.exports*10;
+  function levelInfo(){const xp=xpTotal();let level=1;while(xp>=100*level*(level+1)/2)level++;const from=100*(level-1)*level/2,to=100*level*(level+1)/2;return {xp,level,title:LEVEL_TITLES[Math.min(level-1,LEVEL_TITLES.length-1)],pct:Math.round((xp-from)*100/(to-from)),next:to-xp};}
+  function streak(){const days=new Set(data.progress.days);let n=0;const d=new Date(today()+'T00:00:00');if(!days.has(today()))d.setDate(d.getDate()-1);for(;;n++){const k=d.toISOString().slice(0,10);if(!days.has(k))break;d.setDate(d.getDate()-1);}return n;}
+  function renderChip(){const c=$('#xpChip');if(!c||!data)return;const l=levelInfo();c.innerHTML=`<b>LV ${l.level}</b><span class="xp-bar"><i style="width:${l.pct}%"></i></span><small>${safe(l.title)}</small>`;}
+  function checkProgress(){
+    const fresh=ACHIEVEMENTS.filter(a=>!data.progress.seen.includes(a[0])&&a[4]());
+    if(fresh.length){data.progress.seen.push(...fresh.map(a=>a[0]));toast(`Achievement unlocked: ${fresh.map(a=>a[1]).join(', ')} · +${fresh.reduce((n,a)=>n+a[3],0)} XP`);persistSoon();}
+    renderChip();
   }
   function cardTile(p){
     const original=initialSquad.find(q=>q.id===p.id),templateName=p.templateId==='gfc-original'?'Original GFC card':data.cardTemplates.find(t=>t.id===p.templateId)?.name||'GFC template';
@@ -627,7 +651,7 @@
     Object.values(byRole).flat().forEach((id,n)=>{if(open[n])slots[open[n]]=id;});
     return slots;
   }
-  function setFormation(size,shape){const f=board();f.slots=remapSlots(f.shape,f.slots,shape);f.size=size;f.shape=shape;persist();setPage('formation');}
+  function setFormation(size,shape){const f=board();f.slots=remapSlots(f.shape,f.slots,shape);f.pos={};f.size=size;f.shape=shape;persist();setPage('formation');}
   function autoFillFormation(){
     const layers=formationLayers(board().shape),taken=otherTeamIds(),pool=data.squad.filter(p=>!taken.includes(p.id)),slots={};
     const prefs=(role,i,n)=>role==='GK'?['GK']:role==='DEF'?(n>=4&&i===0?['LB','CB']:n>=4&&i===n-1?['RB','CB']:['CB','LB','RB']):role==='MID'?['CM','CDM','CAM']:(n>=3&&i===0?['LW','ST']:n>=3&&i===n-1?['RW','ST']:['ST','CAM','LW','RW']);
@@ -636,121 +660,76 @@
       if(best<0)best=pool.findIndex(p=>role==='GK'?p.position==='GK':p.position!=='GK');if(best<0&&pool.length)best=0;
       if(best>=0)slots[`${li}-${i}`]=pool.splice(best,1)[0].id;
     }));
-    board().slots=slots;persist();setPage('formation');toast(`Team ${data.formation.team} sorted by position. Review the line-up.`);
+    board().slots=slots;board().pos={};persist();setPage('formation');toast(`Team ${data.formation.team} sorted by position. Review the line-up.`);
   }
   function chartSvg(){const keys=['followers','members','attendance','reach'];const vals=data.growth;const max=Math.max(1,...vals.flatMap(v=>keys.map(k=>Number(v[k])||0)));const pts=vals.map((v,i)=>`${30+i*620/Math.max(1,vals.length-1)},${178-(Number(v.followers)||Number(v.members)||0)/max*145}`).join(' ');return `<svg viewBox="0 0 680 220" role="img" aria-label="Growth snapshots over time"><path d="M30 180H650M30 110H650M30 40H650" class="chart-grid"/><polyline points="${pts}" class="chart-line"/>${vals.map((v,i)=>`<circle cx="${30+i*620/Math.max(1,vals.length-1)}" cy="${178-(Number(v.followers)||Number(v.members)||0)/max*145}" r="5" class="chart-dot"/><text x="${30+i*620/Math.max(1,vals.length-1)}" y="207" text-anchor="middle">${fmtDate(v.date).replace(/,? \d{4}/,'')}</text>`).join('')}</svg>`;}
   function bindView(){
   const appContent=$('#appContent');
   if(!appContent.dataset.tacticsBound){appContent.dataset.tacticsBound='true';
-    const playerAt=target=>target?.closest?.('[data-tactic-player]');
+    const cardAt=target=>target?.closest?.('[data-tactic-player]');
     const markSelected=()=>$$('[data-tactic-player]').forEach(x=>x.classList.toggle('is-selected',x.dataset.tacticPlayer===pendingTacticPlayer?.id));
-    const transferTacticPlayer=(source,targetSlot)=>{
-      const slots=board().slots,from=source.slot||'',to=targetSlot||'',deckScroll=$('.substitute-deck')?.scrollLeft||0;pendingTacticPlayer=null;
-      if(from!==to){
-        if(from&&!to)delete slots[from];
-        else if(from&&to){const displaced=slots[to]||'';if(displaced)slots[from]=displaced;else delete slots[from];slots[to]=source.id;}
-        else slots[to]=source.id;
-        persist();
+    // Drop rules (like EA FC): on the bench = take off the pitch; on/near a position = fill or swap it; in open space = card stays where you drop it.
+    const place=(src,x,y)=>{
+      const t=board(),L=formationLayers(t.shape),pitch=$('[data-pitch]');if(!pitch)return;pendingTacticPlayer=null;
+      const deckScroll=$('.fc-deck')?.scrollLeft||0,r=pitch.getBoundingClientRect(),over=document.elementFromPoint(x,y);let changed=false;
+      const spots=[];L.forEach((line,li)=>line.forEach((_,i)=>{const k=`${li}-${i}`,s=slotXY(t,li,i,line.length,L.length);spots.push({k,x:s.x,y:s.y,home:slotXY({},li,i,line.length,L.length)});}));
+      if(over?.closest?.('.fc-bench')){if(src.slot){delete t.slots[src.slot];if(t.pos)delete t.pos[src.slot];changed=true;}}
+      else if(over?.closest?.('[data-pitch]')){
+        const fx=cl((x-r.left)/r.width,.06,.94),fy=cl((y-r.top)/r.height,.05,.95),dist=s=>Math.hypot((s.x-fx)*r.width,(s.y-fy)*r.height);
+        const near=spots.filter(s=>s.k!==src.slot).sort((a,b)=>dist(a)-dist(b))[0],reach=Math.max(40,r.width*.09);
+        if(near&&dist(near)<=reach){
+          const displaced=t.slots[near.k]||'';if(src.slot){if(displaced)t.slots[src.slot]=displaced;else delete t.slots[src.slot];}
+          t.slots[near.k]=src.id;changed=true;
+        }else if(src.slot){
+          const home=spots.find(s=>s.k===src.slot).home;(t.pos??={});
+          if(Math.hypot((home.x-fx)*r.width,(home.y-fy)*r.height)<24)delete t.pos[src.slot];else t.pos[src.slot]={x:fx,y:fy};changed=true;
+        }else{
+          const free=spots.filter(s=>!t.slots[s.k]).sort((a,b)=>dist(a)-dist(b))[0];
+          if(!free)toast('The pitch is full. Drop onto a player to swap, or drag one off first.');
+          else{t.slots[free.k]=src.id;(t.pos??={})[free.k]={x:fx,y:fy};changed=true;}
+        }
       }
-      setPage('formation');const deck=$('.substitute-deck');if(deck)deck.scrollLeft=deckScroll;
-    };
-    // A drop on the pitch that misses a slot snaps to the nearest slot, so a loose drop still lands.
-    const dropTargetAt=(x,y)=>{
-      const el=document.elementFromPoint(x,y),direct=el?.closest?.('.pitch-slot,.substitutes');if(direct)return direct;
-      if(!el?.closest?.('.pitch'))return null;let best=null,bestDistance=Infinity;
-      for(const slot of $$('.pitch-slot')){const r=slot.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-x,r.top+r.height/2-y);if(d<bestDistance){best=slot;bestDistance=d;}}
-      return bestDistance<=90?best:null;
+      if(changed)persist();
+      setPage('formation');const deck=$('.fc-deck');if(deck)deck.scrollLeft=deckScroll;
     };
     const endDrag=()=>{if(activeTacticDrag?.ghost)activeTacticDrag.ghost.remove();$$('.is-dragging,.drop-ready').forEach(x=>x.classList.remove('is-dragging','drop-ready'));activeTacticDrag=null;};
-    appContent.addEventListener('click',e=>{if(page!=='formation'||Date.now()<suppressTacticClickUntil)return;const card=playerAt(e.target),slot=e.target.closest('.pitch-slot');if(pendingTacticPlayer&&slot&&(!card||card.dataset.tacticPlayer!==pendingTacticPlayer.id)){transferTacticPlayer(pendingTacticPlayer,slot.dataset.slot);return;}if(card){pendingTacticPlayer={id:card.dataset.tacticPlayer,slot:card.dataset.fromSlot||''};markSelected();return;}if(pendingTacticPlayer&&slot){transferTacticPlayer(pendingTacticPlayer,slot.dataset.slot);return;}if(e.target.closest('.substitutes')&&pendingTacticPlayer?.slot){transferTacticPlayer(pendingTacticPlayer,'');}});
+    appContent.addEventListener('click',e=>{
+      if(page!=='formation'||Date.now()<suppressTacticClickUntil)return;const card=cardAt(e.target);
+      if(pendingTacticPlayer&&(!card||card.dataset.tacticPlayer!==pendingTacticPlayer.id)&&e.target.closest('[data-pitch],.fc-bench')){place(pendingTacticPlayer,e.clientX,e.clientY);return;}
+      if(card){pendingTacticPlayer={id:card.dataset.tacticPlayer,slot:card.dataset.fromSlot||''};markSelected();}
+    });
     appContent.addEventListener('keydown',e=>{
       if(page!=='formation')return;
       if(e.key==='Escape'&&pendingTacticPlayer){pendingTacticPlayer=null;markSelected();return;}
-      if(!['Enter',' '].includes(e.key))return;const targetSlot=e.target.closest('.pitch-slot');
-      if(pendingTacticPlayer&&targetSlot){e.preventDefault();transferTacticPlayer(pendingTacticPlayer,targetSlot.dataset.slot);return;}
-      const card=playerAt(e.target);if(card){e.preventDefault();pendingTacticPlayer={id:card.dataset.tacticPlayer,slot:card.dataset.fromSlot||''};markSelected();}
+      if(!['Enter',' '].includes(e.key))return;const card=cardAt(e.target);
+      if(card){e.preventDefault();pendingTacticPlayer={id:card.dataset.tacticPlayer,slot:card.dataset.fromSlot||''};markSelected();return;}
+      const slot=e.target.closest?.('.fc-slot');if(pendingTacticPlayer&&slot){e.preventDefault();const r=slot.getBoundingClientRect();place(pendingTacticPlayer,r.left+r.width/2,r.top+r.height/2);}
     });
-    appContent.addEventListener('pointerdown',e=>{if(page!=='formation'||e.button!==0)return;const card=playerAt(e.target);if(!card)return;activeTacticDrag={id:card.dataset.tacticPlayer,slot:card.dataset.fromSlot||'',startX:e.clientX,startY:e.clientY,moved:false,ghost:null};});
+    appContent.addEventListener('pointerdown',e=>{if(page!=='formation'||e.button!==0)return;const card=cardAt(e.target);if(!card)return;activeTacticDrag={id:card.dataset.tacticPlayer,slot:card.dataset.fromSlot||'',startX:e.clientX,startY:e.clientY,moved:false,ghost:null};});
     document.addEventListener('pointermove',e=>{
       if(!activeTacticDrag)return;const dx=e.clientX-activeTacticDrag.startX,dy=e.clientY-activeTacticDrag.startY;if(!activeTacticDrag.moved&&Math.hypot(dx,dy)<8)return;
       if(!activeTacticDrag.moved){activeTacticDrag.moved=true;const source=$(`[data-tactic-player="${CSS.escape(activeTacticDrag.id)}"]`,appContent);if(source){source.classList.add('is-dragging');const ghost=source.cloneNode(true);ghost.classList.add('tactics-drag-ghost');ghost.removeAttribute('data-tactic-player');document.body.append(ghost);activeTacticDrag.ghost=ghost;}}
       if(activeTacticDrag.ghost){activeTacticDrag.ghost.style.left=e.clientX+'px';activeTacticDrag.ghost.style.top=e.clientY+'px';}
-      $$('.pitch-slot,.substitutes').forEach(x=>x.classList.remove('drop-ready'));dropTargetAt(e.clientX,e.clientY)?.classList.add('drop-ready');
+      const over=document.elementFromPoint(e.clientX,e.clientY);$$('.fc-bench,[data-pitch]').forEach(x=>x.classList.remove('drop-ready'));over?.closest?.('.fc-bench,[data-pitch]')?.classList.add('drop-ready');
     });
     document.addEventListener('pointerup',e=>{
-      if(!activeTacticDrag)return;const drag=activeTacticDrag,target=drag.moved?dropTargetAt(e.clientX,e.clientY):null;
-      if(drag.moved)suppressTacticClickUntil=Date.now()+350;endDrag();
-      if(target)transferTacticPlayer({id:drag.id,slot:drag.slot},target.matches('.pitch-slot')?target.dataset.slot:'');
+      if(!activeTacticDrag)return;const drag=activeTacticDrag;if(drag.moved)suppressTacticClickUntil=Date.now()+350;endDrag();
+      if(drag.moved)place({id:drag.id,slot:drag.slot},e.clientX,e.clientY);
     });
     document.addEventListener('pointercancel',endDrag);
   }
   $$('#appContent [data-nav]').forEach(el=>el.addEventListener('click',()=>setPage(el.dataset.nav)));
   $$('#appContent [data-action]').forEach(el=>el.addEventListener('click',()=>action(el.dataset.action)));
-  $$('#appContent [data-type]').forEach(el=>el.addEventListener('click',()=>{$('#posterType').value=el.dataset.type;data.studio.type=el.dataset.type;syncPosterType();updatePoster();}));
-  $$('#appContent input, #appContent select, #appContent textarea').forEach(el=>el.addEventListener('input',()=>{
-    if(el.dataset.pitchColor){data.formation.colors[el.dataset.pitchColor]=el.value;const pitch=$('.pitch');if(pitch)pitch.style.setProperty('--pitch-'+el.dataset.pitchColor,el.value);persistSoon();return;}
-    if(el.id.startsWith('poster'))updatePoster();
-  }));
   if($('#cardTemplateFile'))$('#cardTemplateFile').addEventListener('change',e=>{const file=e.target.files[0];if(file)importCardTemplate(file);e.target.value='';});
   if($('#activeCardTemplate'))$('#activeCardTemplate').addEventListener('change',()=>{data.activeCardTemplateId=$('#activeCardTemplate').value;persist();setPage('squad');});
   if($('#cardTemplateFilter'))$('#cardTemplateFilter').addEventListener('change',()=>{data.cardTemplateFilter=$('#cardTemplateFilter').value;persist();setPage('squad');});
   $$('#appContent [data-assign-template]').forEach(el=>el.addEventListener('change',()=>assignTemplate(el.dataset.assignTemplate,el.value)));
-  if($('#posterPhoto'))$('#posterPhoto').addEventListener('change',readPosterPhoto);
-  if($('#posterType'))$('#posterType').addEventListener('change',()=>{data.studio.type=$('#posterType').value;syncPosterType();updatePoster();});
   if($('#formationSize'))$('#formationSize').addEventListener('change',()=>{const size=Number($('#formationSize').value);setFormation(size,shapesFor(size)[0]);});
   if($('#formationMatch'))$('#formationMatch').addEventListener('change',()=>{data.formation.matchId=$('#formationMatch').value;pendingTacticPlayer=null;persist();setPage('formation');});
   $$('#appContent [data-team]').forEach(b=>b.addEventListener('click',()=>{data.formation.team=b.dataset.team;pendingTacticPlayer=null;persist();setPage('formation');}));
   if($('#formationShape'))$('#formationShape').addEventListener('change',()=>setFormation(board().size,$('#formationShape').value));
-  if($('#posterCanvas')){['posterOpponent','posterCompetition','posterDate','posterVenue','posterHome','posterAway'].forEach(id=>$('#'+id)?.addEventListener('input',updatePoster));syncPosterType();updatePoster();}
 }
-  function addStudioControls(){
-  const grid=$('.poster-form .form-grid'),anchor=$('#posterPhoto')?.closest('.field');if(!grid||!anchor)return;
-  function addSelect(id,label,choices){
-    const field=document.createElement('label');field.className='field';
-    const caption=document.createElement('span');caption.className='field-label';caption.textContent=label;
-    const select=document.createElement('select');select.className='select';select.id=id;
-    choices.forEach(item=>{const opt=document.createElement('option');opt.value=item[0];opt.textContent=item[1];select.append(opt);});
-    field.append(caption,select);grid.insertBefore(field,anchor);select.value=data.studio[id]||choices[0][0];
-    select.addEventListener('change',()=>{data.studio[id]=select.value;updatePoster();});
-  }
-  function addRange(id,label,initial){
-    const field=document.createElement('label');field.className='field';
-    const caption=document.createElement('span');caption.className='field-label';caption.textContent=label;
-    const input=document.createElement('input');input.className='input range-input';input.type='range';input.min='0';input.max='100';input.id=id;input.value=data.studio[id]??initial;
-    field.append(caption,input);grid.insertBefore(field,anchor);input.addEventListener('input',()=>{data.studio[id]=Number(input.value);updatePoster();});
-  }
-  addSelect('posterFormat','Instagram format',[['feed','Feed portrait · 4:5'],['story','Story / Reel · 9:16']]);
-  addSelect('posterFit','Photo fit',[['crop','Fill frame · crop without stretching'],['contain','Show full photo · no crop']]);
-  addSelect('posterFont','Heading font',fontChoices().map(n=>[n,n]));
-  addSelect('posterLineupMatch','Line-up match',[['','Practice board · no match'],...[...data.matches].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(m=>[m.id,matchLabel(m)])]);
-  addSelect('posterLineupTeam','Line-up teams',[['A','Team A only'],['B','Team B only'],['both','Team A and Team B']]);
-  $('#posterLineupMatch').addEventListener('change',()=>{applyMatchToPoster(data.studio.posterLineupMatch);updatePoster();});
-  addRange('posterFocusX','Photo position · left to right',50);
-  addRange('posterFocusY','Photo position · top to bottom',45);
-  const field=document.createElement('label');field.className='field';field.id='posterPlayerField';
-  const caption=document.createElement('span');caption.className='field-label';caption.textContent='Player spotlight';
-  const select=document.createElement('select');select.className='select';select.id='posterPlayer';
-  data.squad.forEach(p=>{const opt=document.createElement('option');opt.value=p.id;opt.textContent=p.name;select.append(opt);});
-  field.append(caption,select);grid.insertBefore(field,anchor);select.value=data.studio.playerId||data.squad[0]?.id||'';
-  select.addEventListener('change',()=>{data.studio.playerId=select.value;updatePoster();});
-  $('#posterType').value=data.studio.type||'next';syncPosterType();
-}
-  function addFormationColors(){
-  const toolbar=$('.formation-toolbar');if(!toolbar)return;
-  [['primary','GFC red'],['base','Field base'],['line','Line colour']].forEach(([key,label])=>{
-    const field=document.createElement('label');field.className='field color-field';
-    const text=document.createElement('span');text.className='field-label';text.textContent=label;
-    const input=document.createElement('input');input.type='color';input.className='input color-input';input.value=data.formation.colors[key];input.dataset.pitchColor=key;
-    field.append(text,input);toolbar.append(field);const pitch=$('.pitch');if(pitch)pitch.style.setProperty('--pitch-'+key,data.formation.colors[key]);
-  });
-}
-  function syncPosterType(){
-  const selected=$('#posterType')?.value||data.studio.type||'next';
-  $$('#appContent [data-type]').forEach(button=>{const active=button.dataset.type===selected;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});
-  const field=$('#posterPlayerField');if(field)field.hidden=selected!=='player';
-  ['posterLineupMatch','posterLineupTeam'].forEach(id=>{const f=$('#'+id)?.closest('.field');if(f)f.hidden=selected!=='lineup';});
-}
-  function action(name){if(name==='quick-match'||name==='add-match')return matchDialog();if(name==='auto-fill')return autoFillFormation();if(name==='formation-poster')return makeFormationPoster();if(name==='pack-export')return exportPack(false);if(name==='pack-export-all')return exportPack(true);if(name==='manage-fonts')return fontManager();if(name==='goto-matches')return setPage('matches');if(name==='goto-studio')return setPage('studio');if(name==='goto-squad')return setPage('squad');if(name==='add-player')return playerDialog();if(name==='card-editor')return cardEditor();if(name==='import-template')return $('#cardTemplateFile')?.click();if(name==='edit-active-template')return templateEditor(data.activeCardTemplateId);if(name==='apply-active-template')return applyTemplateToSquad(data.activeCardTemplateId);if(name.startsWith('apply-template-'))return applyTemplateToSquad(name.slice(15));if(name.startsWith('edit-template-'))return templateEditor(name.slice(14));if(name.startsWith('duplicate-template-'))return duplicateTemplate(name.slice(19));if(name.startsWith('delete-template-'))return deleteTemplate(name.slice(16));if(name.startsWith('activate-template-')){data.activeCardTemplateId=name.slice(18);persist();return setPage('squad');}if(name.startsWith('export-player-'))return exportPlayerCard(name.slice(14));if(name==='add-growth')return growthDialog();if(name==='add-post')return postDialog();if(name==='export-poster')return exportPoster();if(name==='load-next'){const m=upcoming();if(!m)return toast('Add a fixture first.');Object.assign(data.studio,{opponent:m.opponent,competition:m.competition,date:m.date,venue:m.venue});setPage('studio');return;}if(name==='export-backup')return backup();if(name==='import-backup')return $('#backupImport').click();if(name==='toggle-menu')return $('#sidebar').classList.toggle('is-open');if(name==='export-ics')return exportICS();if(name.startsWith('edit-match-'))return matchDialog(data.matches.find(m=>m.id===name.slice(11)));if(name.startsWith('delete-match-'))return deleteItem('matches',name.slice(13),'fixture');if(name.startsWith('poster-for-')){const m=data.matches.find(x=>x.id===name.slice(11));Object.assign(data.studio,{opponent:m.opponent,competition:m.competition,date:m.date,venue:m.venue,home:m.home??0,away:m.away??0,type:m.home!=null?'score':'next'});persist();return setPage('studio');}if(name.startsWith('edit-player-'))return cardEditor(data.squad.find(p=>p.id===name.slice(12)));if(name.startsWith('delete-growth-'))return deleteItem('growth',name.slice(14),'snapshot');if(name.startsWith('delete-post-'))return deleteItem('posts',name.slice(12),'post');if(name.startsWith('posted-')){const p=data.posts.find(x=>x.id===name.slice(7));p.status='posted';persist();setPage('instagram');toast('Marked as posted.');}}
+  function action(name){if(name==='quick-match'||name==='add-match')return matchDialog();if(name==='auto-fill')return autoFillFormation();if(name==='reset-positions'){board().pos={};persist();return setPage('formation');}if(name==='formation-poster')return makeFormationPoster();if(name==='pack-export')return exportPack(false);if(name==='pack-export-all')return exportPack(true);if(name==='manage-fonts')return fontManager();if(name==='goto-matches')return setPage('matches');if(name==='goto-squad')return setPage('squad');if(name==='add-player')return playerDialog();if(name==='card-editor')return cardEditor();if(name==='import-template')return $('#cardTemplateFile')?.click();if(name==='edit-active-template')return templateEditor(data.activeCardTemplateId);if(name==='apply-active-template')return applyTemplateToSquad(data.activeCardTemplateId);if(name.startsWith('apply-template-'))return applyTemplateToSquad(name.slice(15));if(name.startsWith('edit-template-'))return templateEditor(name.slice(14));if(name.startsWith('duplicate-template-'))return duplicateTemplate(name.slice(19));if(name.startsWith('delete-template-'))return deleteTemplate(name.slice(16));if(name.startsWith('activate-template-')){data.activeCardTemplateId=name.slice(18);persist();return setPage('squad');}if(name.startsWith('export-player-'))return exportPlayerCard(name.slice(14));if(name==='add-growth')return growthDialog();if(name==='add-post')return postDialog();if(name==='export-backup')return backup();if(name==='import-backup')return $('#backupImport').click();if(name==='goto-formation')return setPage('formation');if(name==='export-ics')return exportICS();if(name.startsWith('edit-match-'))return matchDialog(data.matches.find(m=>m.id===name.slice(11)));if(name.startsWith('delete-match-'))return deleteItem('matches',name.slice(13),'fixture');if(name.startsWith('poster-for-')){packUi.matchId=name.slice(11);packUi.kind=data.matches.find(m=>m.id===packUi.matchId)?.home!=null?'score':'next';return setPage('packs');}if(name.startsWith('edit-player-'))return cardEditor(data.squad.find(p=>p.id===name.slice(12)));if(name.startsWith('delete-growth-'))return deleteItem('growth',name.slice(14),'snapshot');if(name.startsWith('delete-post-'))return deleteItem('posts',name.slice(12),'post');if(name.startsWith('posted-')){const p=data.posts.find(x=>x.id===name.slice(7));p.status='posted';persist();setPage('instagram');toast('Marked as posted.');}}
   const modal=$('#modal');function openModal(title,body,submit='Save'){modal.oncancel=null;modal.innerHTML=`<div class="dialog-header"><div><p class="eyebrow">GFC CLUB DESK</p><h2 id="modalTitle">${title}</h2></div><button class="dialog-close" type="button" data-close aria-label="Close">×</button></div><form class="dialog-form"><div class="form-grid">${body}</div><div class="dialog-actions"><button class="button button-quiet" type="button" data-close>Cancel</button><button class="button button-primary" type="submit">${submit}</button></div></form>`;modal.showModal();$$('[data-close]',modal).forEach(b=>b.onclick=()=>modal.close());}
   function field(label,id,value='',type='text',extra=''){return `<label class="field"><span class="field-label">${label}</span><input class="input" id="${id}" name="${id}" type="${type}" value="${safe(value)}" ${extra}></label>`;}
   function matchDialog(m={}){openModal(m.id?'Edit fixture':'Add a fixture',`${field('Opponent','opponent',m.opponent||'')}${field('Competition','competition',m.competition||'Friendly')}${field('Date','date',m.date||today(),'date')}${field('Kick-off','time',m.time||'','time')}${field('Venue','venue',m.venue||'')}${field('GFC score','home',m.home??'','number','min="0"')}${field('Opponent score','away',m.away??'','number','min="0"')}`);$('.dialog-form',modal).onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);const obj={id:m.id||uid(),opponent:f.get('opponent').trim(),competition:f.get('competition').trim(),date:f.get('date'),time:f.get('time'),venue:f.get('venue'),home:f.get('home')===''?null:Number(f.get('home')),away:f.get('away')===''?null:Number(f.get('away'))};data.matches=data.matches.filter(x=>x.id!==obj.id).concat(obj);persist();modal.close();setPage('matches');toast('Fixture saved.');};}
@@ -804,63 +783,6 @@
   function growthDialog(){openModal('Record a growth snapshot',`${field('Snapshot date','date',today(),'date')}${field('Instagram followers','followers','','number','min="0"')}${field('Active squad','members',String(data.squad.length),'number','min="0"')}${field('Match attendance','attendance','','number','min="0"')}${field('Post reach','reach','','number','min="0"')}`);$('.dialog-form',modal).onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);data.growth.push({id:uid(),date:f.get('date'),followers:num(f.get('followers')),members:num(f.get('members')),attendance:num(f.get('attendance')),reach:num(f.get('reach'))});persist();modal.close();setPage('growth');toast('Snapshot recorded.');};}
   function postDialog(){openModal('Plan an Instagram post',`${field('Post title','title','Matchday announcement')}${field('Date and time','dateTime',`${today()}T18:00`,'datetime-local')}${`<label class="field field-span-2"><span class="field-label">Caption</span><textarea class="textarea" name="caption" rows="4">#GFC #GamudaFC</textarea></label>`}${field('Poster file (optional)','image','','text','placeholder="Paste an image path"')}`,'Add to planner');$('.dialog-form',modal).onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);data.posts.push({id:uid(),title:f.get('title'),dateTime:f.get('dateTime'),caption:f.get('caption'),image:f.get('image'),status:'planned'});persist();modal.close();setPage('instagram');toast('Post reminder added.');};}
   function num(v){return v===''?null:Number(v);}function deleteItem(key,id,label){if(!confirm(`Remove this ${label}?`))return;data[key]=data[key].filter(x=>x.id!==id);persist();setPage(page);toast(`${label[0].toUpperCase()+label.slice(1)} removed.`);}
-  function updatePoster(){
-  const canvas=$('#posterCanvas');if(!canvas)return;
-  const st=data.studio;
-  for(const [id,key] of Object.entries({posterOpponent:'opponent',posterCompetition:'competition',posterDate:'date',posterVenue:'venue',posterHome:'home',posterAway:'away'})){const el=$('#'+id);if(el)st[key]=el.value;}
-  st.type=$('#posterType')?.value||st.type||'next';st.format=$('#posterFormat')?.value||st.format||'feed';st.fit=$('#posterFit')?.value||st.fit||'crop';
-  st.focusX=Number($('#posterFocusX')?.value??st.focusX??50);st.focusY=Number($('#posterFocusY')?.value??st.focusY??45);
-  const story=st.format==='story';canvas.width=640;canvas.height=story?1138:800;canvas.style.aspectRatio=story?'9 / 16':'4 / 5';
-  const resolution=$('#posterResolution');if(resolution)resolution.textContent=story?'Story / Reel · 9:16 · 1440 × 2560 px':'Feed · 4:5 · 2048 × 2560 px';
-  const player=data.squad.find(p=>p.id===($('#posterPlayer')?.value||st.playerId));
-  const photo=st.customPhoto||(st.type==='player'&&player?player.photo:st.photo);
-  persistSoon();
-  posterPaint=(async()=>{
-    await ensureFonts();const hf=posterFontStack(st.posterFont);try{await document.fonts.load(`700 24px ${hf}`);}catch{}
-    const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#e9dfd0';ctx.fillRect(0,0,w,h);
-    let img=posterImages.get(photo);
-    if(!img){img=await new Promise(resolve=>{const loaded=new Image();loaded.onload=()=>resolve(loaded);loaded.onerror=()=>resolve(null);loaded.src=photo;});if(img)posterImages.set(photo,img);}
-    const red=data.formation.colors.primary||'#ed1c24';
-    ctx.fillStyle='rgba(145,0,18,.94)';ctx.beginPath();ctx.arc(w*.78,h*.28,w*.54,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=.22;ctx.fillStyle='#f6e8dc';ctx.beginPath();ctx.arc(w*.78,h*.28,w*.39,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-    ctx.save();ctx.beginPath();ctx.rect(0,h*.32,w,h*.68);ctx.clip();if(img){if(st.fit==='contain'){const scale=Math.min(w/img.width,(h*.68)/img.height),dw=img.width*scale,dh=img.height*scale;ctx.drawImage(img,(w-dw)/2,h*.32+(h*.68-dh)/2,dw,dh);}else{const scale=Math.max(w/img.width,(h*.68)/img.height),sw=w/scale,sh=(h*.68)/scale,sx=(img.width-sw)*st.focusX/100,sy=(img.height-sh)*st.focusY/100;ctx.drawImage(img,sx,sy,sw,sh,0,h*.32,w,h*.68);}}ctx.fillStyle='rgba(11,7,10,.26)';ctx.fillRect(0,h*.32,w,h*.68);ctx.restore();
-    ctx.fillStyle=red;ctx.fillRect(0,0,12,h);
-    let logo=posterImages.get('assets/brand/gfc-circle.jpg');
-    if(!logo){logo=await new Promise(resolve=>{const loaded=new Image();loaded.onload=()=>resolve(loaded);loaded.onerror=()=>resolve(null);loaded.src='assets/brand/gfc-circle.jpg';});if(logo)posterImages.set('assets/brand/gfc-circle.jpg',logo);}
-    if(logo)ctx.drawImage(logo,34,30,58,58);
-    await document.fonts.ready;ctx.textBaseline='top';ctx.fillStyle='#221317';ctx.font=`bold 21px ${hf}`;ctx.fillText('GAMUDA FOOTBALL CLUB',108,48);
-    const label={next:'NEXT MATCH',matchday:'MATCHDAY',score:'FULL TIME',lineup:'STARTING XI',player:'PLAYER SPOTLIGHT'}[st.type]||'GFC MATCHDAY';
-    ctx.fillStyle=red;ctx.font=`bold 25px ${hf}`;ctx.fillText(label,38,h*.14);
-    if(st.type==='lineup'){
-      const title=(st.opponent?`GFC VS ${st.opponent}`:'GFC LINE-UP').toUpperCase();let tf=54;ctx.fillStyle='#201317';ctx.font=`bold ${tf}px ${hf}`;while(ctx.measureText(title).width>w-76&&tf>26){tf-=2;ctx.font=`bold ${tf}px ${hf}`;}ctx.fillText(title,38,h*.20);
-      ctx.font=`bold 21px ${hf}`;ctx.fillText([st.competition,st.date?fmtDate(st.date):'',st.venue].filter(Boolean).join('  ·  ').toUpperCase().slice(0,56),38,h*.265);
-      await drawLineupPoster(ctx,w,h,st,hf);
-    }else if(st.type==='player'&&player){
-      ctx.fillStyle='#201317';ctx.font=`bold 62px ${hf}`;ctx.fillText(player.name.toUpperCase(),38,h*.20);
-      ctx.font=`bold 28px ${hf}`;ctx.fillText(player.position+'  ·  #'+player.number,38,h*.28);
-      if(player.rating!=null)ctx.fillText(String(player.rating)+' OVR',40,h*.65);
-    }else if(st.type==='score'){
-      ctx.fillStyle='#201317';ctx.font=`bold 72px ${hf}`;ctx.fillText((st.home===''||st.home==null?'–':st.home)+'  —  '+(st.away===''||st.away==null?'–':st.away),38,h*.19);
-      ctx.font=`bold 34px ${hf}`;ctx.fillText((st.opponent||'OPPONENT').toUpperCase(),38,h*.28);
-    }else{
-      ctx.fillStyle='#201317';ctx.font=`bold 58px ${hf}`;const title=(st.opponent||'OPPONENT').toUpperCase();ctx.fillText(title.length>20?title.slice(0,19)+'…':title,38,h*.19);
-      ctx.font=`bold 25px ${hf}`;ctx.fillText(st.competition||'GFC · MATCHDAY',38,h*.28);
-      ctx.font=`bold 22px ${hf}`;ctx.fillText(fmtDate(st.date)+'  ·  '+(st.venue||'VENUE TBC'),38,h*.33);
-    }
-    ctx.fillStyle='#f5eee7';ctx.fillRect(34,h*.91,w-68,2);ctx.fillStyle='#f5eee7';ctx.font=`bold 22px ${hf}`;ctx.fillText('@GENMUDAFC',38,h*.925);ctx.fillStyle=red;ctx.fillText('RED. BLACK. GFC.',w*.62,h*.925);
-  })();
-}
-  function wrap(ctx,text,x,y,max,lineH){let line='',yy=y;for(const word of text.split(' ')){const test=line?`${line} ${word}`:word;if(ctx.measureText(test).width>max&&line){ctx.fillText(line,x,yy);line=word;yy+=lineH;}else line=test;}if(line)ctx.fillText(line,x,yy);}
-  function readPosterPhoto(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{data.studio.customPhoto=r.result;updatePoster();toast('Photo loaded into poster preview.');};r.readAsDataURL(f);}
-  async function exportPoster(){
-  updatePoster();await posterPaint;
-  const canvas=$('#posterCanvas');if(!canvas)return;
-  const story=data.studio.format==='story',out=document.createElement('canvas');out.width=story?1440:2048;out.height=2560;
-  out.getContext('2d').drawImage(canvas,0,0,out.width,out.height);
-  const blob=await new Promise(resolve=>out.toBlob(resolve,'image/png'));
-  if(!blob)return toast('Could not export the poster. Please try again.');
-  download(blob,'GFC-'+String(data.studio.type||'poster').toUpperCase()+'-'+(data.studio.date||today())+'.png');toast('Instagram image exported.');
-}
   function backup(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'GFC-club-backup.json');}
   function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200);}
   $('#backupImport').addEventListener('change',e=>{
