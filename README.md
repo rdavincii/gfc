@@ -49,3 +49,11 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - Formation: EA FC-style pitch. Drag a card anywhere; drop on a card to swap, on the bench to take it off. Bench cards dropped on the pitch join the nearest empty position. "Reset positions" snaps everyone back to the formation.
 - Poster studio is gone: Match pack covers it. Growth and the Instagram planner are tabs under Club.
 - XP is worked out from your data (achievements, posters exported); streak counts days the app was opened.
+
+## v4 · Club progression and game layer
+- Navigation: Home · Squad · Tactics · Matchday · Club · Analytics. Club holds Game Center, History, Growth, Match pack posters and the Instagram planner.
+- `game.js` is the pure rules engine (`window.GFC_GAME`): XP rules, levels (player step 250, club step 300 × level), achievements, objectives, rewards, team ratings (attack 30% / midfield 35% / defence 35%, "Balanced" within 4 points), analytics. Edit constants at the top of the file, or change XP values in-app under Game Center → XP rules.
+- Everything is derived from real records. A missing value shows "Not recorded"; 0 is shown only once stats or training exist. No coins, loot boxes or purchases.
+- New data fields: player `foot/attrs/joined/history`, match `stats{played,goals,assists,potm}`, `data.training`, `data.rules`, `data.progress{unlocked,claimed,exports}`, lineup `captain`, `settings.pitchTheme`. Older backups load and are normalised.
+- Tests (Playwright, app served on :4173): `tests/game-ui.test.js`, `tests/game.unit.js`.
+- Not built yet: dedicated substitutes picker, opponent logos, separate season-XP track, settings page; `styles.css` still has dead legacy rules.

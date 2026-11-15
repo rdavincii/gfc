@@ -1,0 +1,15 @@
+const G=require('/home/claude/gfc/game.js');const assert=require('assert');
+const squad=[{id:'a',position:'ST',rating:80},{id:'g',position:'GK',rating:70},{id:'c',position:'CB',rating:60}];
+const data={squad,matches:[{id:'m1',date:'2026-03-02',home:3,away:0,stats:{played:['a','g'],goals:{a:2},assists:{},potm:'a'}},{id:'m2',date:'2026-03-09',home:null,away:null}],training:[{id:'t',date:'2026-03-03',attended:['a']}],lineups:{},rules:null,progress:{exports:0,unlocked:{},claimed:{}},packs:{},cardTemplates:[1]};
+let s=G.playerStats(data,squad[0]);assert.equal(s.goals,2);assert.equal(s.apps,1);assert.equal(s.xp,50+200+100+25);
+assert.equal(G.playerStats(data,squad[1]).cleanSheets,1);assert.equal(G.playerStats(data,squad[2]).apps,0,'real zero when stats exist');
+assert.equal(G.playerStats({...data,matches:[],training:[]},squad[0]).apps,null,'not recorded');
+assert.deepEqual(G.level(0,250),{level:1,into:0,need:250,pct:0,total:0});assert.equal(G.level(250,250).level,2);assert.equal(G.level(250+500,250).level,3);
+const mx=G.matchXp(data,data.matches[0]);assert.equal(mx.club,100);assert.equal(mx.per[0].p.id,'a');
+assert.equal(G.fit('ST','ST'),'perfect');assert.equal(G.fit('LW','ST'),'ok');assert.equal(G.fit('CB','ST'),'off');assert.equal(G.fit('CB',''),null);
+const tr=G.teamRatings(null,[{role:'ATT',player:squad[0]},{role:'GK',player:squad[1]},{role:'DEF',player:squad[2]}]);assert.equal(tr.att,80);assert.equal(tr.def,65);assert.equal(tr.balance,'Attack-led');assert.equal(tr.mid,null);
+assert.equal(G.weekStart('2026-11-15'),'2026-11-09');
+const o=G.objectives(data,'2026-03-03');assert.equal(o.find(x=>x.id==='d-train').done,true);assert.equal(o.find(x=>x.id==='d-train').key,'d-train:2026-03-03');
+const an=G.analytics(data,'2026');assert.equal(an.played,1);assert.equal(an.winPct,100);assert.equal(an.scorers[0].p.id,'a');
+assert.equal(G.development({position:'ST',history:[{date:'a',ovr:70,attrs:{pace:70}},{date:'b',ovr:74,attrs:{pace:72}}]}).delta,4);
+console.log('game.js ok',G.clubLevel(data).level);

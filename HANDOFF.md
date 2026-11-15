@@ -59,3 +59,6 @@ To stay within Claude's upload limit, this handoff copy downsizes bundled card P
 
 - v3: removed Poster studio (`data.studio` gone), added `data.progress={seen,exports,days}`, `lineups[..][team].pos` (free card positions as pitch fractions), `slotXY()`, new formation view/handlers, Hub view, Club tabs, `ui.css`. Tests: scratchpad t7 (new UI), t2, t4, t5, t6.
 - Known debt: old pitch/poster-studio/sidebar rules in `styles.css` are now dead and can be deleted.
+
+## v4 handoff
+See README "v4". Key places: `game.js` (engine), `app.js` → `homeView`, `matchdayView`, `gameView`, `resultDialog`/`resultScreen`, `playerProfile`, `analyticsView`, `checkProgress`. Tests in `tests/`. Known gaps: substitutes picker, opponent logos, season-XP track, dead CSS in styles.css.
