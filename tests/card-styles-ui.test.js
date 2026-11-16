@@ -14,7 +14,7 @@ const sig=()=>page.evaluate(()=>{const c=document.querySelector('#ccPreview');re
 let s0=await sig();
 await page.click('[data-cc-shape="hex"]');await page.waitForTimeout(1000);const s1=await sig();ok(s0!==s1,'built-in shape changes the card');
 d=await idb(page);ok(d.editions[mid].shape==='hex','shape saved');
-await page.setInputFiles('#ccShapeFile','shape.png');await page.waitForTimeout(1500);
+await page.setInputFiles('#ccShapeFile','shape.png');await page.waitForSelector('#cutCanvas');await page.click('#cutUse');await page.waitForTimeout(1500);
 d=await idb(page);ok(d.editions[mid].shapeImg?.startsWith('data:image/png')&&!d.editions[mid].shape,'imported shape saved');
 const s2=await sig();ok(s2!==s1,'imported shape repaints');
 await page.setInputFiles('#ccBgFile','bg.jpg');await page.waitForTimeout(1500);

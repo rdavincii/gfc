@@ -9,7 +9,7 @@ const nav=k=>page.evaluate(k=>document.querySelector(`.nav-item[data-nav="${k}"]
 await nav('matches');await page.click('#appContent [data-action="quick-match"]');await page.waitForSelector('#modal[open]');await page.fill('#modal [name="opponent"]','AAA FC');await page.click('#modal [type="submit"]');await page.waitForTimeout(700);
 await page.evaluate(()=>document.querySelector('[data-action^="cards-"]').click());await page.waitForTimeout(800);
 await page.click('[data-cc-scope="squad"]');await page.waitForTimeout(1200);
-await page.setInputFiles('#ccFrameFile','frame.png');await page.waitForTimeout(2000);
+await page.setInputFiles('#ccFrameFile','frame.png');await page.waitForSelector('#cutCanvas');await page.click('#cutUse');await page.waitForTimeout(2000);
 let d=await idb(page);const mid=d.matches[0].id,e=d.editions[mid];
 ok(e.frame?.startsWith('data:image/png')&&e.shapeImg?.startsWith('data:image/png'),'frame saved with derived outline');
 await page.locator('#ccPreview').screenshot({path:`fr-${vp.width}-under.png`});
