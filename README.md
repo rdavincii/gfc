@@ -81,3 +81,7 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - Match cards → "Import card frame": a PNG with see-through edges (your own artwork). The card outline is worked out from the frame automatically (everything enclosed by it counts as inside), so no separate shape file is needed. "Frame over the photo" chooses whether the frame sits under or over the player photo; a full-card template picture works under the photo, a hollow border works over it. Frames save into styles and work on line-up posters.
 - Layout tuned toward the Ultimate Team arrangement: bigger rating, position beneath it, club crest, larger photo, bigger name, tighter two-column stats. EA's official card artwork is not included or copied.
 - Test: `tests/card-frame-ui.test.js` (uses `tests/frame.png`).
+
+## v5.4 · Remove white/black background
+- Importing a card frame or shape now opens "Make the background transparent": Keep as is / Remove white / Remove black / Match corners, a strength slider and "Edges only" (removes only background connected to the picture's edge, so matching colours inside the artwork stay). Live preview on a checkerboard; Cancel stores nothing. The pure routine is `GFC_CARDS.removeBackground`.
+- Test: `tests/cutout-ui.test.js` (uses `tests/cut-white.jpg`, `tests/cut-black.jpg`).

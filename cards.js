@@ -184,7 +184,30 @@
     ctx.fillStyle = '#fff'; ctx.font = `700 34px ${f}`; ctx.fillText('GAMUDA FOOTBALL CLUB', 144, h - 62);
   }
 
-  const api = { PRESETS, PATTERNS, SHAPES, TEMPLATES, forPlayer, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
+  // Makes a plain white / black (or the corner colour) background transparent. Edits img.data in place; returns how many pixels became see-through.
+  // edgesOnly: only background connected to the picture's border is removed, so light or dark areas inside the artwork stay.
+  function removeBackground(img, { mode = 'white', tol = 30, edgesOnly = true, soft = 14 } = {}) {
+    const { data: d, width: W, height: H } = img, n = W * H;
+    let tr = 255, tg = 255, tb = 255;
+    if (mode === 'black') tr = tg = tb = 0;
+    else if (mode === 'auto') { const c = [0, W - 1, (H - 1) * W, n - 1].map((i) => i * 4); tr = tg = tb = 0; c.forEach((i) => { tr += d[i]; tg += d[i + 1]; tb += d[i + 2]; }); tr /= 4; tg /= 4; tb /= 4; }
+    const t = tol * 2.55, dist = (i) => Math.max(Math.abs(d[i * 4] - tr), Math.abs(d[i * 4 + 1] - tg), Math.abs(d[i * 4 + 2] - tb));
+    const reach = t + soft, inside = new Uint8Array(n);
+    if (edgesOnly) {
+      const q = [], push = (i) => { if (!inside[i] && dist(i) <= reach) { inside[i] = 1; q.push(i); } };
+      for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); } for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
+      while (q.length) { const i = q.pop(), x = i % W, y = (i / W) | 0; if (x > 0) push(i - 1); if (x < W - 1) push(i + 1); if (y > 0) push(i - W); if (y < H - 1) push(i + W); }
+    } else for (let i = 0; i < n; i++) if (dist(i) <= reach) inside[i] = 1;
+    let cleared = 0;
+    for (let i = 0; i < n; i++) {
+      if (!inside[i]) continue;
+      const k = Math.min(1, Math.max(0, (dist(i) - t) / Math.max(1, soft))), a = Math.round(d[i * 4 + 3] * k);
+      if (a < d[i * 4 + 3]) { d[i * 4 + 3] = a; if (a < 16) cleared++; }
+    }
+    return cleared;
+  }
+
+  const api = { removeBackground, PRESETS, PATTERNS, SHAPES, TEMPLATES, forPlayer, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
   root.GFC_CARDS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

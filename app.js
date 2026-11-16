@@ -637,6 +637,27 @@
   }
   // The design a poster should use: this match's own look, or one saved in the app.
   const edFor=(m,id)=>id==='match'?cardEd(m):data.cardStyles.some(x=>x.id===id)?GC.resolve(m.id,data.cardStyles.find(x=>x.id===id).ed):null;
+  // Lets you make a picture's white or black background transparent before it is used. Resolves with the new picture, or null if cancelled.
+  function cutoutDialog(src){
+    return new Promise(async resolve=>{
+      const im=await loadCardImage(src);if(!im)return resolve({src,clear:false});
+      let done=false;const finish=v=>{if(done)return;done=true;modal.oncancel=null;if(modal.open)modal.close();resolve(v);};
+      openSheet('Make the background transparent',`<p class="caption">Pick the colour behind the picture. Light or dark areas inside the artwork are kept when "Edges only" is on.</p>
+<div class="cut-stage"><canvas id="cutCanvas" width="${im.naturalWidth||im.width}" height="${im.naturalHeight||im.height}"></canvas></div>
+<div class="cc-chips">${[['none','Keep as is'],['white','Remove white'],['black','Remove black'],['auto','Match corners']].map(([k,l])=>`<button type="button" class="team-tab ${k==='none'?'is-active':''}" data-cut-mode="${k}">${l}</button>`).join('')}</div>
+<label class="field"><span class="field-label">Strength <b id="cutTolV">30</b></span><input type="range" id="cutTol" min="0" max="60" value="30"></label>
+<label class="cc-check"><input type="checkbox" id="cutEdges" checked> Edges only (keep matching colours inside the artwork)</label>
+<div class="cc-stage-actions"><button class="button button-quiet" type="button" id="cutCancel">Cancel</button><button class="button button-primary" type="button" id="cutUse">Use picture</button></div>`,'cut-sheet');
+      const cv=$('#cutCanvas',modal),ctx=cv.getContext('2d',{willReadFrequently:true});let mode='none';
+      const draw=()=>{ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(im,0,0,cv.width,cv.height);if(mode==='none')return 0;const id=ctx.getImageData(0,0,cv.width,cv.height),n=GC.removeBackground(id,{mode,tol:+$('#cutTol',modal).value,edgesOnly:$('#cutEdges',modal).checked});ctx.putImageData(id,0,0);return n;};
+      let t0;const soon=()=>{clearTimeout(t0);t0=setTimeout(draw,60);};draw();
+      $$('[data-cut-mode]',modal).forEach(b=>b.onclick=()=>{mode=b.dataset.cutMode;$$('[data-cut-mode]',modal).forEach(x=>x.classList.toggle('is-active',x===b));draw();});
+      $('#cutTol',modal).oninput=e=>{$('#cutTolV',modal).textContent=e.target.value;soon();};$('#cutEdges',modal).onchange=draw;
+      $('#cutCancel',modal).onclick=()=>finish(null);
+      $('#cutUse',modal).onclick=()=>{draw();const d=ctx.getImageData(0,0,cv.width,cv.height).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),clear});};
+      modal.oncancel=()=>finish(null);modal.addEventListener('close',()=>finish(null),{once:true});
+    });
+  }
   // Solid outline of a frame picture: everything not reachable from the edges through see-through pixels counts as inside.
   async function frameSilhouette(src){
     const im=await loadCardImage(src);if(!im)return '';const W=240,H=Math.round(W*GC.RATIO),c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');ctx.drawImage(im,0,0,W,H);
@@ -714,8 +735,8 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     $$('[data-cc-scope]').forEach(b=>b.onclick=()=>{cardUi.scope=b.dataset.ccScope;cardUi.selected='';redraw();});
     $$('[data-cc-pick]').forEach(b=>b.onclick=()=>{cardUi.selected=b.dataset.ccPick;redraw();scrollTo(0,0);});
     $$('[data-cc-shape]').forEach(b=>b.onclick=()=>set({shape:b.dataset.ccShape,shapeImg:null,tpl:null}));
-    $('#ccShapeFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const r=await importPicture(f,700,true);if(!r.clear)toast('That picture has no see-through area, so the card stays a full rectangle.');set({shapeImg:r.src,shape:null});}catch(err){toast(err.message);}};
-    $('#ccFrameFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const r=await importPicture(f,900,true);const sil=await frameSilhouette(r.src);set({frame:r.src,shapeImg:sil||null,shape:null,tpl:null});if(!r.clear)toast('That picture has no see-through edges, so the card stays a rectangle.');}catch(err){toast(err.message);}};
+    $('#ccShapeFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{let r=await importPicture(f,700,true);r=await cutoutDialog(r.src);if(!r)return;if(!r.clear)toast('That picture has no see-through area, so the card stays a full rectangle.');set({shapeImg:r.src,shape:null});}catch(err){toast(err.message);}};
+    $('#ccFrameFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{let r=await importPicture(f,900,true);r=await cutoutDialog(r.src);if(!r)return;const sil=await frameSilhouette(r.src);set({frame:r.src,shapeImg:sil||null,shape:null,tpl:null});if(!r.clear)toast('That picture has no see-through edges, so the card stays a rectangle.');}catch(err){toast(err.message);}};
     $('#ccFrameTop').onchange=e=>set({frameTop:e.target.checked?true:null},true);
     $('#ccBgFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const r=await importPicture(f,900,false);set({bg:r.src});}catch(err){toast(err.message);}};
     $$('[data-cc-apply]').forEach(b=>b.onclick=async()=>{const s=data.cardStyles.find(x=>x.id===b.dataset.ccApply);if(!s)return;data.editions[m.id]=JSON.parse(JSON.stringify(s.ed));persistSoon();redraw();toast(`Style "${s.name}" applied.`);});
