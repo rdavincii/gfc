@@ -34,7 +34,7 @@ This first version does not publish directly to Instagram. Automatic publishing 
 
 ## Included club artwork
 
-The app bundles the circular logo from Logo/GFC Circle.jpg and finished player card exports from FIFA_Card_Project/Cards.
+The app bundles the club logo (`assets/brand/gfc-logo.png`) and finished player card exports from FIFA_Card_Project/Cards. Those finished card images still contain the old logo baked in.
 
 ## Match line-ups and fonts
 - Formation board: choose a match (or the practice board), then build **Team A** and **Team B**. A player can only be in one team per match. "Create formation poster" opens the Poster studio on the Line-up type with the match filled in; choose Team A, Team B or both.
@@ -85,3 +85,9 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 ## v5.4 · Remove white/black background
 - Importing a card frame or shape now opens "Make the background transparent": Keep as is / Remove white / Remove black / Match corners, a strength slider and "Edges only" (removes only background connected to the picture's edge, so matching colours inside the artwork stay). Live preview on a checkerboard; Cancel stores nothing. The pure routine is `GFC_CARDS.removeBackground`.
 - Test: `tests/cutout-ui.test.js` (uses `tests/cut-white.jpg`, `tests/cut-black.jpg`).
+
+## v5.5 · Frame extraction and new logo
+- Importing a card frame has "Extract the frame only": a full card picture (artwork inside the border) is hollowed out so only the border stays, with a thickness slider (2–25% of the width). It combines with "Remove white/black" and switches "Frame over the photo" on automatically. Pure routine: `GFC_CARDS.extractFrame`.
+- The club logo is now `assets/brand/gfc-logo.png` (transparent PNG). The old `gfc-circle.jpg` and `gfc-crest.png` are deleted; old paths saved in a backup or in template layers are rewritten on load. The logo gets a white disc behind it on cards, posters and the top bar so the red stays readable.
+- Fixed: on phones the bottom navigation was stuck under the top bar (the top bar's blur created a containing block for it).
+- Test: `tests/frame-extract-logo.test.js`.

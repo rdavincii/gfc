@@ -8,7 +8,7 @@
   const initialSquad = (window.GFC_INITIAL_SQUAD || []).map(p => ({...p}));
   const defaultCardTemplate=()=>({id:'gfc-classic',name:'GFC Red & Black',width:902,height:1389,background:'',source:'built-in',layers:[
     {id:'photo',label:'Player photo',type:'photo',field:'photo',x:15,y:18,w:80,h:68,fit:'cover',focusX:50,focusY:43,visible:true},
-    {id:'logo',label:'Club crest',type:'logo',src:'assets/brand/gfc-crest.png',x:4,y:4,w:13,h:12,visible:true},
+    {id:'logo',label:'Club crest',type:'logo',src:'assets/brand/gfc-logo.png',x:4,y:4,w:13,h:12,visible:true},
     {id:'number',label:'Shirt number',type:'text',field:'number',x:5,y:24,w:24,h:16,fontSize:10,color:'#ed1c24',font:'Winner GFC',align:'left',visible:true},
     {id:'position',label:'Position',type:'text',field:'position',x:5,y:43,w:24,h:10,fontSize:5.5,color:'#ed1c24',font:'Winner GFC',align:'left',visible:true},
     {id:'name',label:'Player name',type:'text',field:'name',x:8,y:79,w:82,h:10,fontSize:7.3,color:'#ed1c24',font:'Winner GFC',align:'center',visible:true},
@@ -32,6 +32,8 @@
     d.fonts=Array.isArray(raw.fonts)?raw.fonts.filter(x=>x&&x.name&&x.src).map(x=>({name:x.name,src:x.src})):[];
     d.cardTemplates.forEach(t=>{if(Array.isArray(t.fonts)){t.fonts.forEach(x=>{if(x&&x.name&&x.src&&!d.fonts.some(y=>y.name===x.name))d.fonts.push({name:x.name,src:x.src});});delete t.fonts;}});
     const cleanEd=s=>{const o={};if(!s||typeof s!=='object')return o;if(GC.PRESETS.some(q=>q.id===s.preset))o.preset=s.preset;if(GC.PATTERNS.some(q=>q[0]===s.pattern))o.pattern=s.pattern;if(GC.SHAPES.some(q=>q[0]===s.shape))o.shape=s.shape;if(s.frameTop===true)o.frameTop=true;for(const k of ['shapeImg','bg','frame'])if(typeof s[k]==='string'&&s[k].startsWith('data:image/'))o[k]=s[k];for(const k of ['c1','c2','accent','ink'])if(/^#[0-9a-f]{6}$/i.test(s[k]))o[k]=s[k];if(typeof s.label==='string')o.label=s.label.slice(0,18);if(s.stats===false)o.stats=false;if(GC.TEMPLATES.some(q=>q.id===s.tpl))o.tpl=s.tpl;if(s.autoTier===true)o.autoTier=true;if(s.shine===false)o.shine=false;if(typeof s.font==='string'&&(d.fonts.some(f=>f.name===s.font)||['Winner GFC','Bebas GFC','Arial'].includes(s.font)))o.font=s.font;return o;};
+    const oldLogo=/assets\/brand\/gfc-(crest\.png|circle\.jpg)$/,newLogo=v=>typeof v==='string'&&oldLogo.test(v)?'assets/brand/gfc-logo.png':v;
+    d.cardTemplates.forEach(t=>(t.layers||[]).forEach(l=>{if(l&&l.src)l.src=newLogo(l.src);}));d.squad.forEach(p=>{if(p.photo)p.photo=newLogo(p.photo);});
     d.editions={};for(const [id,s] of Object.entries(raw.editions&&typeof raw.editions==='object'?raw.editions:{}))if(d.matches.some(m=>m.id===id))d.editions[id]=cleanEd(s);
     d.cardStyles=(Array.isArray(raw.cardStyles)?raw.cardStyles:[]).filter(x=>x&&typeof x.id==='string'&&typeof x.name==='string').slice(0,24).map(x=>({id:x.id,name:x.name.slice(0,30)||'Style',ed:cleanEd(x.ed)}));
     const old=raw.formation||{};d.lineups=raw.lineups&&typeof raw.lineups==='object'?raw.lineups:{};
@@ -152,11 +154,11 @@
   async function drawTemplateCard(canvas,player,template,editor=false,selected=''){
     if(!canvas||!template)return;
     const token=canvas._paintToken=(canvas._paintToken||0)+1,stale=()=>canvas._paintToken!==token;
-    const layers=template.layers||[],photoSrc=player.photo||'assets/brand/gfc-circle.jpg';
+    const layers=template.layers||[],photoSrc=player.photo||'assets/brand/gfc-logo.png';
     await ensureFonts();
     const families=new Set(layers.filter(l=>l.type==='text'&&l.visible!==false).map(l=>l.font||'Winner GFC'));
     await Promise.all([...families].map(f=>document.fonts.load(`700 24px "${f}"`).catch(()=>{})));
-    const sources=new Set([template.background,photoSrc,...layers.filter(l=>l.type==='logo').map(l=>l.src||'assets/brand/gfc-crest.png')].filter(Boolean)),loaded=new Map();
+    const sources=new Set([template.background,photoSrc,...layers.filter(l=>l.type==='logo').map(l=>l.src||'assets/brand/gfc-logo.png')].filter(Boolean)),loaded=new Map();
     await Promise.all([...sources].map(async src=>loaded.set(src,await loadCardImage(src))));
     if(stale())return;
     const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;drawDefaultCardBase(ctx,w,h);
@@ -169,7 +171,7 @@
         else{const crop=player.crop||{},zoom=Math.max(1,Number(crop.zoom??layer.zoom??100)/100),fx=Number(crop.x??layer.focusX??50)/100,fy=Number(crop.y??layer.focusY??43)/100,scale=Math.max(lw/im.width,lh/im.height)*zoom,sw=lw/scale,sh=lh/scale;ctx.drawImage(im,(im.width-sw)*fx,(im.height-sh)*fy,sw,sh,x,y,lw,lh);}
         ctx.restore();
       }else if(layer.type==='logo'){
-        const im=loaded.get(layer.src||'assets/brand/gfc-crest.png');if(!im)continue;ctx.save();
+        const im=loaded.get(layer.src||'assets/brand/gfc-logo.png');if(!im)continue;ctx.save();
         if(layer.round){ctx.beginPath();ctx.ellipse(x+lw/2,y+lh/2,lw/2,lh/2,0,0,Math.PI*2);ctx.clip();}
         const scale=Math.min(lw/im.width,lh/im.height),dw=im.width*scale,dh=im.height*scale;ctx.drawImage(im,x+(lw-dw)/2,y+(lh-dh)/2,dw,dh);ctx.restore();
       }else if(layer.type==='text'){
@@ -200,9 +202,9 @@
     $$('#appContent [data-template-player]').forEach(async node=>{
       const p=data.squad.find(x=>x.id===node.dataset.templatePlayer),t=data.cardTemplates.find(x=>x.id===p?.templateId);if(!p||!t)return;
       try{node.src=await cardUrl(p,t);}
-      catch{node.src=p.photo||'assets/brand/gfc-circle.jpg';if(!renderWarned){renderWarned=true;toast(location.protocol==='file:'?'Cards cannot be drawn from a file:// address. Start the local server from the README and open http://localhost:4173.':'A player card could not be drawn. Try reloading the app.');}}
+      catch{node.src=p.photo||'assets/brand/gfc-logo.png';if(!renderWarned){renderWarned=true;toast(location.protocol==='file:'?'Cards cannot be drawn from a file:// address. Start the local server from the README and open http://localhost:4173.':'A player card could not be drawn. Try reloading the app.');}}
     });
-    const sample=data.squad.find(p=>p.photo)||{name:'PLAYER',number:'22',position:'ST',rating:82,photo:'assets/brand/gfc-circle.jpg'};
+    const sample=data.squad.find(p=>p.photo)||{name:'PLAYER',number:'22',position:'ST',rating:82,photo:'assets/brand/gfc-logo.png'};
     $$('#appContent [data-template-thumb]').forEach(async node=>{const t=data.cardTemplates.find(x=>x.id===node.dataset.templateThumb);if(!t)return;try{node.src=await cardUrl({...sample,id:'__sample__'},t);}catch{}});
   }
   // ---- Image helpers ----
@@ -291,7 +293,7 @@
     openModal('Arrange card template',`<div class="template-designer field-span-2"><div class="template-designer-stage"><canvas id="templateDesignerCanvas" width="${PREVIEW_W}" height="${PREVIEW_H}" tabindex="0" role="img" aria-label="Card template preview. Drag layers to move them; arrow keys nudge the selected layer."></canvas><p class="caption">Drag a layer to move it, or drag a blue corner handle to resize it. Arrow keys nudge the selected layer (Shift for bigger steps).</p></div><aside class="template-designer-controls"><label class="field"><span class="field-label">Template name</span><input class="input" id="templateName" value="${safe(draft.name)}" maxlength="60"></label><label class="field"><span class="field-label">Preview with player</span><select class="select" id="tplPreviewPlayer">${data.squad.map(p=>`<option value="${safe(p.id)}" ${p.id===previewDefault?'selected':''}>${safe(p.name)} · #${safe(p.number)}</option>`).join('')||'<option value="">Sample player</option>'}</select></label><div><p class="field-label">Layers (top first)</p><div class="template-layer-list" id="templateLayerList"></div></div><div class="template-layer-properties" id="templateLayerControls"></div><div class="template-layer-order"><button class="button button-secondary button-small" type="button" id="addTemplateText">＋ Add text</button><button class="button button-secondary button-small" type="button" id="addTemplateImage">＋ Add logo / image</button></div></aside></div>`,'Save template');
     const canvas=$('#templateDesignerCanvas'),form=$('.dialog-form',modal),list=$('#templateLayerList'),controls=$('#templateLayerControls');
     const selected=()=>draft.layers.find(l=>l.id===selectedId);
-    const previewPlayer=()=>data.squad.find(p=>p.id===$('#tplPreviewPlayer').value)||{name:'PLAYER',number:'22',position:'ST',rating:82,photo:'assets/brand/gfc-circle.jpg'};
+    const previewPlayer=()=>data.squad.find(p=>p.id===$('#tplPreviewPlayer').value)||{name:'PLAYER',number:'22',position:'ST',rating:82,photo:'assets/brand/gfc-logo.png'};
     const draw=()=>drawTemplateCard(canvas,previewPlayer(),draft,true,selectedId);
     const touch=()=>{dirty=true;};
     const moveLayer=(id,dir)=>{const i=draft.layers.findIndex(l=>l.id===id),j=i+dir;if(i<0||j<0||j>=draft.layers.length)return;[draft.layers[i],draft.layers[j]]=[draft.layers[j],draft.layers[i]];touch();renderList();draw();};
@@ -508,7 +510,7 @@
   async function renderPack(canvas,m,pack,kind){
     const token=++packToken,story=pack.format==='story',W=PACK_W,H=story?1920:1350;
     await ensureFonts();const hf=posterFontStack(pack.font);try{await document.fonts.load(`700 40px ${hf}`);}catch{}
-    const bg=pack.bg?await posterImg(pack.bg):null,logo=await posterImg('assets/brand/gfc-circle.jpg');
+    const bg=pack.bg?await posterImg(pack.bg):null,logo=await posterImg('assets/brand/gfc-logo.png');
     const lineup=kind.startsWith('lineup')?peek(m.id,kind.slice(-1))||{size:11,shape:'4-3-3',slots:{}}:null;
     if(lineup)for(const id of Object.values(lineup.slots)){const p=data.squad.find(q=>q.id===id);if(p){await posterImg(p.card);await posterImg(p.photo);}}
     if(token!==packToken)return;
@@ -526,7 +528,7 @@
     for(const el of packElements(kind,m)){
       const ov=packLayout(pack,kind,el.id);if(ov.hide)continue;
       const x=(ov.x??el.x)*W,y=(ov.y??el.y)*H,size=(ov.s??el.s)*W,text=ov.text??el.text,align=el.align||'center';
-      if(el.type==='logo'){if(logo){ctx.save();ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);ctx.clip();ctx.drawImage(logo,x-size/2,y-size/2,size,size);ctx.restore();}boxes[el.id]={x:x-size/2,y:y-size/2,w:size,h:size};continue;}
+      if(el.type==='logo'){if(logo){ctx.save();ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);ctx.clip();ctx.fillStyle='#fff';ctx.fillRect(x-size/2,y-size/2,size,size);ctx.drawImage(logo,x-size/2,y-size/2,size,size);ctx.restore();}boxes[el.id]={x:x-size/2,y:y-size/2,w:size,h:size};continue;}
       ctx.textBaseline='middle';ctx.textAlign=align;
       if(el.type==='list'){
         const lh=size*1.14,gap=size*.4;ctx.font=`bold ${size}px ${hf}`;let maxW=0;
@@ -632,13 +634,13 @@
   const cardOpts=(m,p,look,photo)=>({photo,crest:look.crest,bgImage:look.bgImage,shapeImage:look.shapeImage,frameImage:look.frameImage,attrKeys:G.attrKeys(p),potm:m.stats?.potm===p.id});
   async function cardAssets(ed){
     await ensureFonts();const f=ed.font||'Winner GFC';try{await document.fonts.load(`700 24px "${f}"`);}catch{}
-    const [crest,bgImage,shapeImage,frameImage]=await Promise.all([loadCardImage('assets/brand/gfc-crest.png'),ed.bg?loadCardImage(ed.bg):null,ed.shapeImg?loadCardImage(ed.shapeImg):null,ed.frame?loadCardImage(ed.frame):null]);
+    const [crest,bgImage,shapeImage,frameImage]=await Promise.all([loadCardImage('assets/brand/gfc-logo.png'),ed.bg?loadCardImage(ed.bg):null,ed.shapeImg?loadCardImage(ed.shapeImg):null,ed.frame?loadCardImage(ed.frame):null]);
     return {crest,bgImage,shapeImage,frameImage};
   }
   // The design a poster should use: this match's own look, or one saved in the app.
   const edFor=(m,id)=>id==='match'?cardEd(m):data.cardStyles.some(x=>x.id===id)?GC.resolve(m.id,data.cardStyles.find(x=>x.id===id).ed):null;
   // Lets you make a picture's white or black background transparent before it is used. Resolves with the new picture, or null if cancelled.
-  function cutoutDialog(src){
+  function cutoutDialog(src,opts={}){
     return new Promise(async resolve=>{
       const im=await loadCardImage(src);if(!im)return resolve({src,clear:false});
       let done=false;const finish=v=>{if(done)return;done=true;modal.oncancel=null;if(modal.open)modal.close();resolve(v);};
@@ -647,14 +649,17 @@
 <div class="cc-chips">${[['none','Keep as is'],['white','Remove white'],['black','Remove black'],['auto','Match corners']].map(([k,l])=>`<button type="button" class="team-tab ${k==='none'?'is-active':''}" data-cut-mode="${k}">${l}</button>`).join('')}</div>
 <label class="field"><span class="field-label">Strength <b id="cutTolV">30</b></span><input type="range" id="cutTol" min="0" max="60" value="30"></label>
 <label class="cc-check"><input type="checkbox" id="cutEdges" checked> Edges only (keep matching colours inside the artwork)</label>
+${opts.frame?`<label class="cc-check"><input type="checkbox" id="cutFrame"> Extract the frame only (hollow out the middle so a photo can show through)</label><label class="field"><span class="field-label">Frame thickness <b id="cutThickV">7</b>%</span><input type="range" id="cutThick" min="2" max="25" value="7"></label>`:''}
 <div class="cc-stage-actions"><button class="button button-quiet" type="button" id="cutCancel">Cancel</button><button class="button button-primary" type="button" id="cutUse">Use picture</button></div>`,'cut-sheet');
       const cv=$('#cutCanvas',modal),ctx=cv.getContext('2d',{willReadFrequently:true});let mode='none';
-      const draw=()=>{ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(im,0,0,cv.width,cv.height);if(mode==='none')return 0;const id=ctx.getImageData(0,0,cv.width,cv.height),n=GC.removeBackground(id,{mode,tol:+$('#cutTol',modal).value,edgesOnly:$('#cutEdges',modal).checked});ctx.putImageData(id,0,0);return n;};
+      const wantFrame=()=>!!$('#cutFrame',modal)?.checked;
+      const draw=()=>{ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(im,0,0,cv.width,cv.height);if(mode==='none'&&!wantFrame())return 0;const id=ctx.getImageData(0,0,cv.width,cv.height);if(mode!=='none')GC.removeBackground(id,{mode,tol:+$('#cutTol',modal).value,edgesOnly:$('#cutEdges',modal).checked});if(wantFrame())GC.extractFrame(id,{thickness:+$('#cutThick',modal).value});ctx.putImageData(id,0,0);return 1;};
       let t0;const soon=()=>{clearTimeout(t0);t0=setTimeout(draw,60);};draw();
       $$('[data-cut-mode]',modal).forEach(b=>b.onclick=()=>{mode=b.dataset.cutMode;$$('[data-cut-mode]',modal).forEach(x=>x.classList.toggle('is-active',x===b));draw();});
+      if($('#cutFrame',modal)){$('#cutFrame',modal).onchange=draw;$('#cutThick',modal).oninput=e=>{$('#cutThickV',modal).textContent=e.target.value;soon();};}
       $('#cutTol',modal).oninput=e=>{$('#cutTolV',modal).textContent=e.target.value;soon();};$('#cutEdges',modal).onchange=draw;
       $('#cutCancel',modal).onclick=()=>finish(null);
-      $('#cutUse',modal).onclick=()=>{draw();const d=ctx.getImageData(0,0,cv.width,cv.height).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),clear});};
+      $('#cutUse',modal).onclick=()=>{draw();const d=ctx.getImageData(0,0,cv.width,cv.height).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),clear,extracted:wantFrame()});};
       modal.oncancel=()=>finish(null);modal.addEventListener('close',()=>finish(null),{once:true});
     });
   }
@@ -736,7 +741,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     $$('[data-cc-pick]').forEach(b=>b.onclick=()=>{cardUi.selected=b.dataset.ccPick;redraw();scrollTo(0,0);});
     $$('[data-cc-shape]').forEach(b=>b.onclick=()=>set({shape:b.dataset.ccShape,shapeImg:null,tpl:null}));
     $('#ccShapeFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{let r=await importPicture(f,700,true);r=await cutoutDialog(r.src);if(!r)return;if(!r.clear)toast('That picture has no see-through area, so the card stays a full rectangle.');set({shapeImg:r.src,shape:null});}catch(err){toast(err.message);}};
-    $('#ccFrameFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{let r=await importPicture(f,900,true);r=await cutoutDialog(r.src);if(!r)return;const sil=await frameSilhouette(r.src);set({frame:r.src,shapeImg:sil||null,shape:null,tpl:null});if(!r.clear)toast('That picture has no see-through edges, so the card stays a rectangle.');}catch(err){toast(err.message);}};
+    $('#ccFrameFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{let r=await importPicture(f,900,true);r=await cutoutDialog(r.src,{frame:true});if(!r)return;const sil=await frameSilhouette(r.src);set({frame:r.src,shapeImg:sil||null,shape:null,tpl:null,frameTop:r.extracted?true:null});if(!r.clear)toast('That picture has no see-through edges, so the card stays a rectangle.');}catch(err){toast(err.message);}};
     $('#ccFrameTop').onchange=e=>set({frameTop:e.target.checked?true:null},true);
     $('#ccBgFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const r=await importPicture(f,900,false);set({bg:r.src});}catch(err){toast(err.message);}};
     $$('[data-cc-apply]').forEach(b=>b.onclick=async()=>{const s=data.cardStyles.find(x=>x.id===b.dataset.ccApply);if(!s)return;data.editions[m.id]=JSON.parse(JSON.stringify(s.ed));persistSoon();redraw();toast(`Style "${s.name}" applied.`);});
@@ -803,7 +808,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
       const rating=f.get('rating')===''?null:Math.min(99,Math.max(1,Math.round(Number(f.get('rating')))));
       const history=[...(p.history||[])],last=history[history.length-1];
       if((rating!=null||Object.keys(attrs).length)&&(!last||last.ovr!==rating||JSON.stringify(last.attrs||{})!==JSON.stringify(attrs)))history.push({date:today(),ovr:rating,attrs});
-      const obj={...p,id:p.id||uid(),name:f.get('name').trim().toUpperCase(),number:f.get('number'),position,foot:f.get('foot'),rating,attrs,history:history.slice(-60),joined:f.get('joined')||'',photo:f.get('photo')||p.photo||'assets/brand/gfc-circle.jpg'};
+      const obj={...p,id:p.id||uid(),name:f.get('name').trim().toUpperCase(),number:f.get('number'),position,foot:f.get('foot'),rating,attrs,history:history.slice(-60),joined:f.get('joined')||'',photo:f.get('photo')||p.photo||'assets/brand/gfc-logo.png'};
       if(!obj.templateId)obj.templateId=data.activeCardTemplateId||'gfc-classic';
       data.squad=data.squad.filter(x=>x.id!==obj.id).concat(obj);persist();modal.close();setPage(page);toast('Player saved.');
     };
@@ -893,7 +898,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     const objs=G.objectives(data).filter(o=>!o.claimed).sort((a,b)=>(b.done-a.done)||((b.value/b.target)-(a.value/a.target))).slice(0,4);
     const act=timeline().slice(0,6);
     const loop=['Player data','Card','Squad','Tactics','Matchday','Result','XP','Development','Club'];
-    return `<section class="club-head"><div class="club-badge ${frame?'frame-'+frame.id:''}"><img src="./assets/brand/gfc-circle.jpg" alt=""></div><div class="club-head-main"><p class="eyebrow">SEASON ${season}</p><h2>Gamuda Football Club</h2><div class="club-facts"><span><b>${data.squad.length}</b> players</span><span><b>${ovr??'–'}</b> club OVR${ovr==null?' · not rated':''}</span><span>🔥 <b>${streak()}</b> day streak</span></div></div><div class="club-level"><div class="hub-lv"><b>${lv.level}</b><span>CLUB LEVEL</span></div>${bar(lv.pct,'xp-big')}<small>${lv.into} / ${lv.need} XP</small></div></section>
+    return `<section class="club-head"><div class="club-badge ${frame?'frame-'+frame.id:''}"><img src="./assets/brand/gfc-logo.png" alt=""></div><div class="club-head-main"><p class="eyebrow">SEASON ${season}</p><h2>Gamuda Football Club</h2><div class="club-facts"><span><b>${data.squad.length}</b> players</span><span><b>${ovr??'–'}</b> club OVR${ovr==null?' · not rated':''}</span><span>🔥 <b>${streak()}</b> day streak</span></div></div><div class="club-level"><div class="hub-lv"><b>${lv.level}</b><span>CLUB LEVEL</span></div>${bar(lv.pct,'xp-big')}<small>${lv.into} / ${lv.need} XP</small></div></section>
 <section class="hub-hero"><div class="hub-next"><p class="eyebrow">NEXT MATCH</p>${n?`<h2>GFC <i>VS</i> ${safe((n.opponent||'TBC').toUpperCase())}</h2><p class="hub-when">${safe(n.competition||'Friendly')} · ${fmtDate(n.date)}${n.time?' · '+safe(n.time):''}${n.venue?' · '+safe(n.venue):''}</p><div class="hub-count"><b>${days<=0?'TODAY':days}</b><small>${days<=0?'MATCHDAY':days===1?'DAY TO GO':'DAYS TO GO'}</small></div><div class="hero-actions">${btn('Prepare match','prepare-'+n.id)}${btn('Set line-up','goto-formation','button button-secondary')}</div>`:`<h2>NO MATCH YET</h2><p class="hub-when">Add a fixture to prepare your line-up and posters.</p><div class="hero-actions">${btn('Add a match','quick-match')}</div>`}</div>
 <div class="hub-last panel"><p class="eyebrow">LATEST RESULT</p>${last?`<div class="last-score">${resultBadge(last)}<b>${last.home} – ${last.away}</b><span>vs ${safe(last.opponent||'opponent')}</span></div><p class="caption">${fmtDate(last.date)}</p>${key===null?`<p class="caption">Player stats: ${nr}</p>`:key.length?`<ul class="rs-list">${key.map(x=>`<li><span>${safe(x.p.name)}${x.g?` · ⚽ ${x.g}`:''}${x.a?` · 🅰️ ${x.a}`:''}${x.pm?' · ⭐ POTM':''}</span></li>`).join('')}</ul>`:'<p class="caption">No goals, assists or POTM were recorded.</p>'}${btn('Match report','result-'+last.id,'button button-quiet button-small')}`:`<p class="caption">No result recorded yet.</p>${n?btn('Record a result','result-'+n.id,'button button-quiet button-small'):''}`}</div></section>
 <section class="hub-block"><div class="section-heading"><div><p class="eyebrow">SQUAD SNAPSHOT</p><h3>Your players right now</h3></div></div><div class="snaps">${miniCard('Best rated',best,best?`OVR ${best.rating}`:'')}${miniCard('Most improved',improved?.p,improved?`+${improved.dev.delta} OVR`:'')}${miniCard('Top scorer',an.scorers[0]?.p,an.scorers[0]?`${an.scorers[0].s.goals} goals`:'')}${miniCard('Top assister',an.assisters[0]?.p,an.assisters[0]?`${an.assisters[0].s.assists} assists`:'')}${miniCard('Player of the month',playerById(potmId),potmId?`${potmCount[potmId]}× POTM`:'')}</div></section>
@@ -913,7 +918,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     const m=data.matches.find(x=>x.id===id);if(!m)return;
     const A=peek(m.id,'A'),xi=A?Object.entries(A.slots):[],layers=A?formationLayers(A.shape):[],taken=new Set([...Object.values(A?.slots||{}),...Object.values(peek(m.id,'B')?.slots||{})]);
     const rows=xi.map(([k,pid])=>{const [li,i]=k.split('-').map(Number),p=playerById(pid),f=G.fit(layers[li]?.[i],p?.position);return p?`<li><span class="fit fit-${f||'none'}"></span><span>${safe(p.name)}</span><small>${safe(p.position)} · #${safe(p.number)}${A.captain===p.id?' · C':''}</small></li>`:'';}).join('');
-    openSheet('Matchday',`<div class="md-vs"><div><img src="./assets/brand/gfc-circle.jpg" alt=""><b>GFC</b></div><span>VS</span><div>${opponentMark(m)}<b>${safe((m.opponent||'TBC').toUpperCase())}</b></div></div><p class="md-meta">${safe(m.competition||'Friendly')} · ${fmtDate(m.date)}${m.time?' · KO '+safe(m.time):''}${m.venue?' · '+safe(m.venue):''}</p><div class="pstats"><div class="pstat"><small>Formation</small><b>${A&&xi.length?safe(A.shape):nr}</b></div><div class="pstat"><small>Starting XI</small><b>${xi.length?`${xi.length} / ${A.size}`:nr}</b></div><div class="pstat"><small>Substitutes</small><b>${data.squad.filter(p=>!taken.has(p.id)).length}</b></div></div>${rows?`<ul class="xi">${rows}</ul>`:'<p class="caption">No starting XI yet. Set the line-up in Tactics.</p>'}<div class="dialog-actions"><button class="button button-quiet" type="button" data-close>Close</button>${btn('Set line-up','tactics-'+m.id,'button button-secondary')}${btn('Generate matchday poster','poster-md-'+m.id)}</div>`,'is-profile');
+    openSheet('Matchday',`<div class="md-vs"><div><img src="./assets/brand/gfc-logo.png" alt=""><b>GFC</b></div><span>VS</span><div>${opponentMark(m)}<b>${safe((m.opponent||'TBC').toUpperCase())}</b></div></div><p class="md-meta">${safe(m.competition||'Friendly')} · ${fmtDate(m.date)}${m.time?' · KO '+safe(m.time):''}${m.venue?' · '+safe(m.venue):''}</p><div class="pstats"><div class="pstat"><small>Formation</small><b>${A&&xi.length?safe(A.shape):nr}</b></div><div class="pstat"><small>Starting XI</small><b>${xi.length?`${xi.length} / ${A.size}`:nr}</b></div><div class="pstat"><small>Substitutes</small><b>${data.squad.filter(p=>!taken.has(p.id)).length}</b></div></div>${rows?`<ul class="xi">${rows}</ul>`:'<p class="caption">No starting XI yet. Set the line-up in Tactics.</p>'}<div class="dialog-actions"><button class="button button-quiet" type="button" data-close>Close</button>${btn('Set line-up','tactics-'+m.id,'button button-secondary')}${btn('Generate matchday poster','poster-md-'+m.id)}</div>`,'is-profile');
   }
 
   function gameView(){
@@ -1089,7 +1094,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     const t0=data.cardTemplates.find(t=>t.id===selectedTemplate)||data.cardTemplates[0],crop=p.crop||{};
     const body=`${field('Player name','cardName',p.name||'','text','maxlength="40" required')}${field('Shirt number','cardNumber',p.number||'')}${`<label class="field"><span class="field-label">Position</span><select class="select" name="cardPosition">${['GK','CB','LB','RB','CDM','CM','CAM','LW','RW','ST'].map(x=>`<option ${x===(p.position||'ST')?'selected':''}>${x}</option>`).join('')}</select></label>`}${field('Rating (optional)','cardRating',p.rating??'','number','min="1" max="99"')}${`<label class="field"><span class="field-label">Card template</span><select class="select" id="playerCardTemplate" name="templateId">${data.cardTemplates.map(t=>`<option value="${safe(t.id)}" ${t.id===selectedTemplate?'selected':''}>${safe(t.name)}</option>`).join('')}</select></label>`}${`<label class="field field-span-2"><span class="field-label">Player portrait</span><input class="input" id="playerCardPhoto" type="file" accept="image/*"><span class="field-help">A transparent PNG cut-out works best. The template controls the frame; the sliders below adjust this player’s crop.</span></label>`}${range('cardZoom','Photo zoom %',crop.zoom??photoLayer(t0).zoom??100,100,300)}${range('cardFocusX','Photo left / right',crop.x??photoLayer(t0).focusX??50,0,100)}${range('cardFocusY','Photo up / down',crop.y??photoLayer(t0).focusY??43,0,100)}${`<div class="card-template-preview field-span-2"><p class="field-label">Live card preview</p><canvas id="playerCardPreview" width="${PREVIEW_W}" height="${PREVIEW_H}"></canvas></div>`}`;
     openModal(p.id?'Edit player card':'Create player card',body,'Save player card');
-    const form=$('.dialog-form',modal),canvas=$('#playerCardPreview'),currentPhoto=p.photo||'assets/brand/gfc-circle.jpg';
+    const form=$('.dialog-form',modal),canvas=$('#playerCardPreview'),currentPhoto=p.photo||'assets/brand/gfc-logo.png';
     const currentCrop=()=>cropTouched||p.crop?{zoom:Number($('#cardZoom').value),x:Number($('#cardFocusX').value),y:Number($('#cardFocusY').value)}:undefined;
     const draw=()=>{const template=data.cardTemplates.find(t=>t.id===$('#playerCardTemplate').value)||data.cardTemplates[0];return drawTemplateCard(canvas,{name:$('#cardName').value||'PLAYER',number:$('#cardNumber').value||'00',position:$('[name="cardPosition"]',form).value,rating:$('#cardRating').value===''?null:Number($('#cardRating').value),photo:photoData||currentPhoto,crop:currentCrop()},template);};
     $$('#modal input,#modal select').forEach(el=>el.addEventListener('input',draw));

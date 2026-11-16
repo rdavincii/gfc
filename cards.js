@@ -143,7 +143,7 @@
     ctx.font = `700 ${w * 0.1}px ${f}`; ctx.fillText(String(player.position || '').toUpperCase(), lx, y + h * 0.238);
     ctx.fillStyle = look.accent; ctx.fillRect(lx - w * 0.07, y + h * 0.256, w * 0.14, Math.max(1, w * 0.007));
     ctx.fillStyle = ink; ctx.font = `700 ${w * 0.075}px ${f}`; ctx.fillText('#' + (player.number ?? ''), lx, y + h * 0.3);
-    if (opts.crest) { const s = w * 0.15; ctx.drawImage(opts.crest, lx - s / 2, y + h * 0.325, s, s); }
+    if (opts.crest) { const s = w * 0.15, cy = y + h * 0.325 + s / 2; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(lx, cy, s / 2, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(opts.crest, lx - s / 2, cy - s / 2, s, s); }
     // edition label
     if (ed.label && !potm) { ctx.globalAlpha = 0.9; ctx.font = `700 ${w * 0.055}px ${f}`; ctx.fillStyle = look.accent; ctx.fillText(String(ed.label).toUpperCase(), x + w * 0.62, y + h * 0.075); ctx.globalAlpha = 1; }
     if (potm) { ctx.fillStyle = look.accent; ctx.font = `700 ${w * 0.055}px ${f}`; ctx.fillText('★ PLAYER OF THE MATCH', x + w * 0.62, y + h * 0.075); }
@@ -180,7 +180,7 @@
       const r = Math.floor(i / 4), inRow = Math.min(4, n - r * 4), c = i % 4, rowW = inRow * cw + (inRow - 1) * gap, sx = (w - rowW) / 2 + c * (cw + gap), sy = 290 + r * 364;
       drawCard(ctx, sx, sy, cw, it.player, ed, it.opts);
     });
-    if (opts.crest) ctx.drawImage(opts.crest, 64, h - 108, 64, 64);
+    if (opts.crest) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(96, h - 76, 32, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(opts.crest, 64, h - 108, 64, 64); }
     ctx.fillStyle = '#fff'; ctx.font = `700 34px ${f}`; ctx.fillText('GAMUDA FOOTBALL CLUB', 144, h - 62);
   }
 
@@ -207,7 +207,22 @@
     return cleared;
   }
 
-  const api = { removeBackground, PRESETS, PATTERNS, SHAPES, TEMPLATES, forPlayer, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
+  // Hollows out a full card picture so only the border is left: whatever lies deeper than `thickness` (% of the width) from the outside edge becomes transparent.
+  function extractFrame(img, { thickness = 7, soft = 3 } = {}) {
+    const { data: d, width: W, height: H } = img, n = W * H, out = new Uint8Array(n), q = [];
+    const push = (i) => { if (!out[i] && d[i * 4 + 3] < 16) { out[i] = 1; q.push(i); } };
+    for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); } for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
+    while (q.length) { const i = q.pop(), x = i % W, y = (i / W) | 0; if (x > 0) push(i - 1); if (x < W - 1) push(i + 1); if (y > 0) push(i - W); if (y < H - 1) push(i + W); }
+    const dist = new Float32Array(n), BIG = 1e9, S = Math.SQRT2;
+    for (let i = 0; i < n; i++) dist[i] = out[i] ? 0 : BIG;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; let v = dist[i]; if (x > 0) v = Math.min(v, dist[i - 1] + 1); if (y > 0) { v = Math.min(v, dist[i - W] + 1); if (x > 0) v = Math.min(v, dist[i - W - 1] + S); if (x < W - 1) v = Math.min(v, dist[i - W + 1] + S); } dist[i] = v; }
+    for (let y = H - 1; y >= 0; y--) for (let x = W - 1; x >= 0; x--) { const i = y * W + x; let v = dist[i]; if (x < W - 1) v = Math.min(v, dist[i + 1] + 1); if (y < H - 1) { v = Math.min(v, dist[i + W] + 1); if (x < W - 1) v = Math.min(v, dist[i + W + 1] + S); if (x > 0) v = Math.min(v, dist[i + W - 1] + S); } dist[i] = v; }
+    const t = W * thickness / 100; let cleared = 0;
+    for (let i = 0; i < n; i++) { if (out[i]) continue; const k = Math.min(1, Math.max(0, (dist[i] - t) / Math.max(1, soft))); if (k > 0) { d[i * 4 + 3] = Math.round(d[i * 4 + 3] * (1 - k)); if (k === 1) cleared++; } }
+    return cleared;
+  }
+
+  const api = { extractFrame, removeBackground, PRESETS, PATTERNS, SHAPES, TEMPLATES, forPlayer, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
   root.GFC_CARDS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
