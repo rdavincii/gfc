@@ -91,3 +91,6 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - The club logo is now `assets/brand/gfc-logo.png` (transparent PNG). The old `gfc-circle.jpg` and `gfc-crest.png` are deleted; old paths saved in a backup or in template layers are rewritten on load. The logo gets a white disc behind it on cards, posters and the top bar so the red stays readable.
 - Fixed: on phones the bottom navigation was stuck under the top bar (the top bar's blur created a containing block for it).
 - Test: `tests/frame-extract-logo.test.js`.
+
+## Phone link (GitHub Pages)
+Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.
