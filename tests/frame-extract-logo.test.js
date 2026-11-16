@@ -4,7 +4,7 @@ const idb=p=>p.evaluate(()=>new Promise(r=>{const q=indexedDB.open('gfc-club-des
 const alphaAt=(page,src,x,y)=>page.evaluate(([s,x,y])=>new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=i.width;c.height=i.height;const g=c.getContext('2d');g.drawImage(i,0,0);r(g.getImageData(Math.round(x*i.width),Math.round(y*i.height),1,1).data[3]);};i.src=s;}),[src,x,y]);
 (async()=>{const b=await chromium.launch(),errors=[],reqs=[];
 for(const vp of [{width:1280,height:1000},{width:390,height:844}]){
-const ctx=await b.newContext({viewport:vp});const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)reqs.push(r.url())});
+const ctx=await b.newContext({viewport:vp});const page=await ctx.newPage();await page.addInitScript(()=>{new MutationObserver(()=>document.querySelectorAll('details.cc-more:not([open])').forEach(x=>x.open=true)).observe(document,{childList:true,subtree:true});});page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)reqs.push(r.url())});
 await page.goto('http://localhost:4173/index.html');await page.waitForTimeout(1500);
 ok(await page.evaluate(()=>document.querySelector('.brand img').src.includes('gfc-logo.png')&&document.querySelector('link[rel=icon]').href.includes('gfc-logo.png')),'top bar + favicon use the new logo');
 await page.screenshot({path:`logo-${vp.width}.png`});

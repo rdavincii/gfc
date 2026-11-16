@@ -14,29 +14,6 @@
   ];
   const PATTERNS = [['rays', 'Rays'], ['rings', 'Rings'], ['hex', 'Hex'], ['stripes', 'Stripes'], ['waves', 'Waves'], ['dots', 'Dots']];
   const SHAPES = [['shield', 'Shield'], ['classic', 'Classic'], ['angled', 'GFC cut'], ['rounded', 'Rounded'], ['hex', 'Hexagon'], ['arch', 'Arch']];
-  // Original GFC card templates, grouped like a card creator's "official styles" (tiers first, then special editions).
-  const T = (id, name, group, c1, c2, accent, ink, pattern, shape, label) => ({ id, name, group, ed: { c1, c2, accent, ink, pattern, shape, label } });
-  const TEMPLATES = [
-    T('bronze', 'Bronze', 'Standard', '#4a2a12', '#c98a52', '#f3d2a8', '#2b1608', 'dots', 'classic', 'BRONZE'),
-    T('silver', 'Silver', 'Standard', '#4a5560', '#d7dee6', '#ffffff', '#1d252c', 'stripes', 'classic', 'SILVER'),
-    T('gold', 'Gold', 'Standard', '#8a5f12', '#f6dc8a', '#fff3c4', '#2a1b04', 'rays', 'classic', 'GOLD'),
-    T('rare', 'Rare gold', 'Standard', '#6e4a08', '#ffd25a', '#fff8d8', '#241503', 'rays', 'shield', 'RARE'),
-    T('matchday', 'Matchday', 'Special', '#2a060b', '#ed1c24', '#ffd9d2', '#ffffff', 'stripes', 'angled', 'MATCHDAY'),
-    T('captain', 'Captain', 'Special', '#08080a', '#2c2c33', '#f3c969', '#ffffff', 'rings', 'arch', 'CAPTAIN'),
-    T('icon', 'Icon', 'Special', '#b9a36a', '#fdf6dc', '#6b5420', '#3a2c0c', 'waves', 'hex', 'ICON'),
-    T('hero', 'Hero', 'Special', '#12063a', '#2fc7b8', '#e9fffb', '#ffffff', 'rays', 'shield', 'HERO'),
-    T('toty', 'Team of the Year', 'Special', '#07123f', '#1f4fd8', '#e8c872', '#f6e7b4', 'hex', 'rounded', 'TEAM OF THE YEAR'),
-    T('rising', 'Rising star', 'Special', '#03281d', '#14a56a', '#d9ffe8', '#ffffff', 'stripes', 'angled', 'RISING STAR'),
-    T('night', 'Night match', 'Special', '#1c0638', '#8a3cff', '#ffe1ff', '#ffffff', 'dots', 'classic', 'NIGHT MATCH'),
-    T('sunset', 'Golden hour', 'Special', '#4a0c27', '#ff7a2f', '#fff0d0', '#ffffff', 'waves', 'rounded', 'GOLDEN HOUR')
-  ];
-  const TIERS = [['bronze', 0], ['silver', 65], ['gold', 75], ['rare', 85]];
-  // With "tier by rating" on, a rated player's card takes the Bronze/Silver/Gold/Rare template for their rating (other settings stay).
-  function forPlayer(ed, player) {
-    if (!ed.autoTier || player.rating == null) return ed;
-    let id = 'bronze'; for (const [k, min] of TIERS) if (player.rating >= min) id = k;
-    return { ...ed, ...TEMPLATES.find((x) => x.id === id).ed, shape: ed.shape === 'custom' ? 'custom' : TEMPLATES.find((x) => x.id === id).ed.shape };
-  }
   const LABELS = { pace: 'PAC', shooting: 'SHO', passing: 'PAS', dribbling: 'DRI', defending: 'DEF', physical: 'PHY', diving: 'DIV', handling: 'HAN', kicking: 'KIC', reflexes: 'REF', speed: 'SPD', positioning: 'POS' };
   const RATIO = 1.54;
   const FONT = (f) => `"${f || 'Winner GFC'}","Bebas GFC",sans-serif`;
@@ -53,7 +30,7 @@
     return {
       preset: preset.id, pattern, shape: shapeImg ? 'custom' : (SHAPES.some((q) => q[0] === s.shape) ? s.shape : 'shield'), shapeImg, bg: img(s.bg), frame: img(s.frame), frameTop: s.frameTop === true,
       c1: hex(s.c1) || preset.c1, c2: hex(s.c2) || preset.c2, accent: hex(s.accent) || preset.accent, ink: hex(s.ink) || preset.ink,
-      tpl: TEMPLATES.some((q) => q.id === s.tpl) ? s.tpl : '', autoTier: s.autoTier === true, shine: s.shine !== false,
+      shine: s.shine !== false,
       label: typeof s.label === 'string' ? s.label.slice(0, 18) : 'MATCHDAY', stats: s.stats !== false, font: s.font || ''
     };
   }
@@ -93,8 +70,9 @@
 
   // opts: photo (Image|null), crest (Image|null), attrKeys[], potm (bool)
   // opts: photo, crest, bgImage (Image|null), shapeImage (Image|null, used as an alpha mask when ed.shape === 'custom'), attrKeys, potm
-  function drawCard(ctx, x, y, w, player, ed0, opts = {}) {
-    const ed = forPlayer(ed0, player), h = w * RATIO;
+  function drawCard(ctx, x, y, w, player, ed, opts = {}) {
+    if (ed.design) return drawDesign(ctx, x, y, w, player, ed, opts);
+    const h = w * RATIO;
     if (ed.shape === 'custom' && opts.shapeImage) {
       const W = Math.ceil(w), H = Math.ceil(h), mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
       const look = opts.potm ? '#f6dc8a' : ed.accent;
@@ -222,7 +200,92 @@
     return cleared;
   }
 
-  const api = { extractFrame, removeBackground, PRESETS, PATTERNS, SHAPES, TEMPLATES, forPlayer, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
+
+  // ===== User-made card templates ("designs"): a background picture plus movable items, drawn the same way for every player =====
+  const blendDefaults = () => ({ preset: 'none', color: '#1f4fd8', amount: 0, contrast: 100, saturation: 100, brightness: 100 });
+  const defaultLayers = () => [
+    { id: 'photo', type: 'photo', label: 'Player photo', x: 0.56, y: 0.4, s: 0.82, visible: true },
+    { id: 'rating', type: 'rating', label: 'Rating', x: 0.17, y: 0.16, s: 0.24, color: '#ffffff', font: '', shadow: true, visible: true },
+    { id: 'position', type: 'position', label: 'Position', x: 0.17, y: 0.235, s: 0.1, color: '#ffffff', font: '', shadow: true, visible: true },
+    { id: 'number', type: 'number', label: 'Number', x: 0.17, y: 0.3, s: 0.08, color: '#ffffff', font: '', shadow: true, visible: true },
+    { id: 'logo', type: 'logo', label: 'Club logo', x: 0.17, y: 0.375, s: 0.14, visible: true },
+    { id: 'name', type: 'name', label: 'Name', x: 0.5, y: 0.71, s: 0.13, color: '#ffffff', font: '', shadow: true, visible: true },
+    { id: 'attrs', type: 'attrs', label: 'Attributes', x: 0.5, y: 0.84, s: 0.07, color: '#ffffff', font: '', shadow: true, visible: true }
+  ];
+  const rgb = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); const n = m ? parseInt(m[1], 16) : 0x1f4fd8; return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const blendActive = (b) => b && (b.amount > 0 || b.contrast !== 100 || b.saturation !== 100 || b.brightness !== 100);
+  // Same grade for every photo: brightness, contrast, saturation, then a colour wash that keeps each pixel's own brightness.
+  function blendImageData(img, b) {
+    const d = img.data, [tr, tg, tb] = rgb(b.color), a = b.amount / 100, ct = b.contrast / 100, sat = b.saturation / 100, br = b.brightness / 100, tl = 0.299 * tr + 0.587 * tg + 0.114 * tb || 1;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      let r = d[i] * br, g = d[i + 1] * br, bl = d[i + 2] * br;
+      r = (r - 128) * ct + 128; g = (g - 128) * ct + 128; bl = (bl - 128) * ct + 128;
+      let l = 0.299 * r + 0.587 * g + 0.114 * bl; r = l + (r - l) * sat; g = l + (g - l) * sat; bl = l + (bl - l) * sat;
+      if (a > 0) { l = Math.max(0, Math.min(255, 0.299 * r + 0.587 * g + 0.114 * bl)); const k = l / tl; r = r * (1 - a) + Math.min(255, tr * k) * a; g = g * (1 - a) + Math.min(255, tg * k) * a; bl = bl * (1 - a) + Math.min(255, tb * k) * a; }
+      d[i] = r < 0 ? 0 : r > 255 ? 255 : r; d[i + 1] = g < 0 ? 0 : g > 255 ? 255 : g; d[i + 2] = bl < 0 ? 0 : bl > 255 ? 255 : bl;
+    }
+  }
+  const blendCache = new WeakMap();
+  function gradedPhoto(im, b) {
+    if (!blendActive(b)) return im;
+    const key = [b.color, b.amount, b.contrast, b.saturation, b.brightness].join('|');
+    let m = blendCache.get(im); if (!m) { m = new Map(); blendCache.set(im, m); }
+    if (m.has(key)) return m.get(key);
+    const sc = Math.min(1, 700 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * sc)); c.height = Math.max(1, Math.round(im.height * sc));
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0, c.width, c.height); const id = g.getImageData(0, 0, c.width, c.height); blendImageData(id, b); g.putImageData(id, 0, 0);
+    if (m.size > 12) m.clear(); m.set(key, c); return c;
+  }
+  // Draws a player with a saved design; returns the on-canvas box of every item so an editor can hit-test and select them.
+  function drawDesign(ctx, x, y, w, player, ed, opts = {}) {
+    const d = ed.design, h = w * RATIO;
+    if (d.shapeImg && opts.shapeImage) {
+      const W = Math.ceil(w), H = Math.ceil(h), c = document.createElement('canvas'); c.width = W; c.height = H;
+      const bc = c.getContext('2d'), boxes = paintDesign(bc, 0, 0, W, player, ed, opts, 'rect');
+      bc.globalCompositeOperation = 'destination-in'; bc.drawImage(opts.shapeImage, 0, 0, W, H);
+      ctx.drawImage(c, x, y, w, h); return boxes.map((b) => ({ ...b, x: b.x + x, y: b.y + y }));
+    }
+    return paintDesign(ctx, x, y, w, player, ed, opts, d.shape || 'shield');
+  }
+  function paintDesign(ctx, x, y, w, player, ed, opts, kind) {
+    const d = ed.design, h = w * RATIO, boxes = [], f = FONT(d.font || ed.font), fr = opts.frameImage, bgi = opts.bgImage;
+    ctx.save(); shield(ctx, x, y, w, h, kind); ctx.clip();
+    const g = ctx.createLinearGradient(x, y, x + w * 0.6, y + h); g.addColorStop(0, d.color2 || '#ed1c24'); g.addColorStop(1, d.color1 || '#2a060b'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+    if (bgi) { const sc = Math.max(w / bgi.width, h / bgi.height), sw = w / sc, sh = h / sc; ctx.drawImage(bgi, (bgi.width - sw) / 2, (bgi.height - sh) / 2, sw, sh, x, y, w, h); }
+    if (fr && !d.frameTop) ctx.drawImage(fr, x, y, w, h);
+    const layers = d.layers || [], photoL = layers.find((l) => l.type === 'photo' && l.visible !== false);
+    if (photoL) {
+      const im = opts.photo, cx = x + photoL.x * w, cy = y + photoL.y * h, pw = photoL.s * w;
+      if (im) { const src = gradedPhoto(im, d.blend), ph = pw * src.height / src.width; ctx.drawImage(src, cx - pw / 2, cy - ph / 2, pw, ph); boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - ph / 2, w: pw, h: ph }); }
+      else { const s = pw * 0.6; if (opts.crest) { ctx.save(); ctx.globalAlpha = 0.3; ctx.drawImage(opts.crest, cx - s / 2, cy - s / 2, s, s); ctx.restore(); } boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - pw * 0.6, w: pw, h: pw * 1.2 }); }
+    }
+    if (fr && d.frameTop) ctx.drawImage(fr, x, y, w, h);
+    ctx.restore();
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const l of layers) {
+      if (l.type === 'photo' || l.visible === false) continue;
+      const cx = x + l.x * w, cy = y + l.y * h, lf = l.font ? FONT(l.font) : f;
+      ctx.save(); ctx.fillStyle = l.color || '#fff';
+      if (l.shadow) { ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = Math.max(2, l.s * w * 0.16); ctx.shadowOffsetY = Math.max(1, l.s * w * 0.04); }
+      if (l.type === 'logo') {
+        const s = l.s * w; if (opts.crest) { ctx.shadowColor = 'transparent'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, s / 2, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(opts.crest, cx - s / 2, cy - s / 2, s, s); }
+        boxes.push({ id: l.id, x: cx - s / 2, y: cy - s / 2, w: s, h: s });
+      } else if (l.type === 'attrs') {
+        const keys = opts.attrKeys || [], a = player.attrs || {}, fs = l.s * w, rowH = fs * 1.5;
+        ctx.font = `700 ${fs}px ${lf}`;
+        keys.forEach((k, i) => { const col = i % 2, row = Math.floor(i / 2), px = cx + (col ? 0.2 : -0.2) * w, py = cy + (row - 1) * rowH; ctx.textAlign = 'right'; ctx.fillText(a[k] == null ? '--' : String(a[k]), px - fs * 0.15, py); ctx.textAlign = 'left'; ctx.globalAlpha = 0.85; ctx.fillText(LABELS[k] || '', px + fs * 0.15, py); ctx.globalAlpha = 1; });
+        ctx.textAlign = 'center'; boxes.push({ id: l.id, x: cx - 0.4 * w, y: cy - rowH * 1.6, w: 0.8 * w, h: rowH * 3.2 });
+      } else {
+        let txt = l.type === 'name' ? String(player.name || '').toUpperCase() : l.type === 'number' ? String(player.number ?? '') : l.type === 'position' ? String(player.position || '').toUpperCase() : l.type === 'rating' ? (player.rating == null ? '--' : String(player.rating)) : String(l.text || '');
+        let fs = l.s * w; ctx.font = `700 ${fs}px ${lf}`; while (ctx.measureText(txt).width > w * 0.9 && fs > 6) { fs *= 0.94; ctx.font = `700 ${fs}px ${lf}`; }
+        ctx.fillText(txt, cx, cy); const tw = Math.max(ctx.measureText(txt).width, fs * 0.8); boxes.push({ id: l.id, x: cx - tw / 2, y: cy - fs * 0.6, w: tw, h: fs * 1.2 });
+      }
+      ctx.restore();
+    }
+    ctx.restore(); return boxes;
+  }
+
+  const api = { removeBackground, extractFrame, blendDefaults, defaultLayers, drawDesign, PRESETS, PATTERNS, SHAPES, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
   root.GFC_CARDS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

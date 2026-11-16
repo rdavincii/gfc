@@ -62,3 +62,7 @@ To stay within Claude's upload limit, this handoff copy downsizes bundled card P
 
 ## v4 handoff
 See README "v4". Key places: `game.js` (engine), `app.js` → `homeView`, `matchdayView`, `gameView`, `resultDialog`/`resultScreen`, `playerProfile`, `analyticsView`, `checkProgress`. Tests in `tests/`. Known gaps: substitutes picker, opponent logos, season-XP track, dead CSS in styles.css.
+
+
+## v5.6 update: Card Studio
+Built-in card templates (TEMPLATES, tier-by-rating) were removed. Users now build templates in the full-screen studio (app.js `openStudio`, cards.js `drawDesign`/`blendImageData`). See README v5.6 for behaviour and data fields. Not yet tested on a real phone; Pages must be enabled manually in repo Settings.

@@ -4,7 +4,7 @@ const idb=p=>p.evaluate(()=>new Promise(r=>{const q=indexedDB.open('gfc-club-des
 const alphaAt=(page,src,x,y)=>page.evaluate(([s,x,y])=>new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=i.width;c.height=i.height;const g=c.getContext('2d');g.drawImage(i,0,0);r(g.getImageData(Math.round(x*i.width),Math.round(y*i.height),1,1).data[3]);};i.src=s;}),[src,x,y]);
 (async()=>{const b=await chromium.launch(),errors=[];
 for(const vp of [{width:1280,height:1000},{width:390,height:844}])for(const [file,mode] of [['cut-white.jpg','white'],['cut-black.jpg','black']]){
-const ctx=await b.newContext({viewport:vp});const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+const ctx=await b.newContext({viewport:vp});const page=await ctx.newPage();await page.addInitScript(()=>{new MutationObserver(()=>document.querySelectorAll('details.cc-more:not([open])').forEach(x=>x.open=true)).observe(document,{childList:true,subtree:true});});page.on('pageerror',e=>errors.push(e.message));
 await page.goto('http://localhost:4173/index.html');await page.waitForTimeout(1500);
 const nav=k=>page.evaluate(k=>document.querySelector(`.nav-item[data-nav="${k}"]`).click(),k).then(()=>page.waitForTimeout(500));
 await nav('matches');await page.click('#appContent [data-action="quick-match"]');await page.waitForSelector('#modal[open]');await page.fill('#modal [name="opponent"]','AAA FC');await page.click('#modal [type="submit"]');await page.waitForTimeout(700);

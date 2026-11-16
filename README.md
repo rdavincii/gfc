@@ -71,11 +71,8 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - "Save style" stores the whole look (including imported pictures) in `data.cardStyles` (max 24). Apply it to any match from the Saved styles row. Match pack → "Player cards on line-up posters" picks the match's style or any saved style for formation posters; deleting a style resets posters that used it.
 - Test: `tests/card-styles-ui.test.js` (uses `tests/shape.png`, `tests/bg.jpg`).
 
-## v5.2 · Card templates
-- Match cards has a template gallery: Standard tiers (Bronze, Silver, Gold, Rare gold) and Special editions (Matchday, Captain, Icon, Hero, Team of the Year, Rising star, Night match, Golden hour). They are original GFC designs (colours, pattern, shape, label); tap one to apply it, then keep tweaking.
-- "Tier by rating" gives each rated player the Bronze/Silver/Gold/Rare template for their rating (<65, 65–74, 75–84, 85+); unrated players keep the chosen design. "Shine effect" toggles the gloss.
-- Templates are stored as normal edition values (`tpl`, `autoTier`, `shine`), so they save into saved styles and work on line-up posters.
-- Test: `tests/card-templates-ui.test.js`.
+## v5.2 · (replaced in v5.6)
+The built-in template gallery was removed; see v5.6.
 
 ## v5.3 · Card frames and layout
 - Match cards → "Import card frame": a PNG with see-through edges (your own artwork). The card outline is worked out from the frame automatically (everything enclosed by it counts as inside), so no separate shape file is needed. "Frame over the photo" chooses whether the frame sits under or over the player photo; a full-card template picture works under the photo, a hollow border works over it. Frames save into styles and work on line-up posters.
@@ -91,6 +88,16 @@ Each match has one art style (background from a PSD/PSB/PNG/JPG, red tint, darke
 - The club logo is now `assets/brand/gfc-logo.png` (transparent PNG). The old `gfc-circle.jpg` and `gfc-crest.png` are deleted; old paths saved in a backup or in template layers are rewritten on load. The logo gets a white disc behind it on cards, posters and the top bar so the red stays readable.
 - Fixed: on phones the bottom navigation was stuck under the top bar (the top bar's blur created a containing block for it).
 - Test: `tests/frame-extract-logo.test.js`.
+
+## v5.6 · Card Studio (your own templates)
+Match cards → **＋ New template** opens a full-screen studio.
+- Background: choose a picture from your gallery (Background chip). Optional frame PNG and shape.
+- Items (player photo, name, number without #, position, rating, club logo, stats, extra text): drag them on the card. Dashed box = selected. Two fingers pinch to resize. Cyan guide lines snap to the centre, margins and other items. The bottom bar (size, colour, font, shadow, arrows, centre) never needs scrolling.
+- Player photo from gallery: Player photo chip → picks a photo for the preview player (background removal dialog is offered).
+- Filter chip: one grade (None, Match card, Warm, Cool, Mono, or custom tint/contrast/saturation/brightness) applied to every player photo so they look alike.
+- Save: the template is stored in the app (max 12), applied to the match, and offered in each match pack poster's "Player cards" list. Edit, Duplicate, Delete and "Use for all matches" sit under the template chips.
+- Quick looks (presets/patterns/colours) remain under a collapsed section and only apply when no template is chosen.
+Data: `data.cardDesigns[]`, edition `designId` ('none' = off), `settings.defaultDesign`, pack `cardStyle: 'design:<id>'`. Tests: `tests/card-studio-ui.test.js`.
 
 ## Phone link (GitHub Pages)
 Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.
