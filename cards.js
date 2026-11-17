@@ -203,6 +203,10 @@
 
   // ===== User-made card templates ("designs"): a background picture plus movable items, drawn the same way for every player =====
   const blendDefaults = () => ({ preset: 'none', color: '#1f4fd8', amount: 0, contrast: 100, saturation: 100, brightness: 100 });
+  // Face guide: the circle every player's face is fitted into (x,y centre and s diameter as fractions of the card). Fade: colour rising from the bottom so the photo melts in and the name has clear space.
+  const faceDefaults = () => ({ on: true, x: 0.5, y: 0.3, s: 0.36 });
+  const FACE_GUESS = { x: 0.5, y: 0.22, s: 0.34 };
+  const fadeDefaults = () => ({ on: true, color: '', amount: 88, height: 46 });
   const defaultLayers = () => [
     { id: 'photo', type: 'photo', label: 'Player photo', x: 0.56, y: 0.4, s: 0.82, visible: true },
     { id: 'rating', type: 'rating', label: 'Rating', x: 0.17, y: 0.16, s: 0.24, color: '#ffffff', font: '', shadow: true, visible: true },
@@ -255,9 +259,17 @@
     if (fr && !d.frameTop) ctx.drawImage(fr, x, y, w, h);
     const layers = d.layers || [], photoL = layers.find((l) => l.type === 'photo' && l.visible !== false);
     if (photoL) {
-      const im = opts.photo, cx = x + photoL.x * w, cy = y + photoL.y * h, pw = photoL.s * w;
+      const im = opts.photo, gd = d.face && d.face.on ? d.face : null;
+      let cx = x + photoL.x * w, cy = y + photoL.y * h, pw = photoL.s * w;
+      if (gd) { const pf = player.face || FACE_GUESS, ar = im ? im.height / im.width : 1.2; pw = gd.s * w / pf.s; cx = x + gd.x * w - (pf.x - 0.5) * pw; cy = y + gd.y * h - (pf.y - 0.5) * pw * ar; }
       if (im) { const src = gradedPhoto(im, d.blend), ph = pw * src.height / src.width; ctx.drawImage(src, cx - pw / 2, cy - ph / 2, pw, ph); boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - ph / 2, w: pw, h: ph }); }
       else { const s = pw * 0.6; if (opts.crest) { ctx.save(); ctx.globalAlpha = 0.3; ctx.drawImage(opts.crest, cx - s / 2, cy - s / 2, s, s); ctx.restore(); } boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - pw * 0.6, w: pw, h: pw * 1.2 }); }
+    }
+    const fd = d.fade;
+    if (fd && fd.on && fd.amount > 0) {
+      const [r, g2, b] = rgb(fd.color || d.color1), a = fd.amount / 100, fh = h * fd.height / 100, gr = ctx.createLinearGradient(0, y + h, 0, y + h - fh);
+      gr.addColorStop(0, `rgba(${r},${g2},${b},${a})`); gr.addColorStop(0.45, `rgba(${r},${g2},${b},${a * 0.72})`); gr.addColorStop(1, `rgba(${r},${g2},${b},0)`);
+      ctx.fillStyle = gr; ctx.fillRect(x, y + h - fh, w, fh + 1);
     }
     if (fr && d.frameTop) ctx.drawImage(fr, x, y, w, h);
     ctx.restore();
@@ -285,7 +297,7 @@
     ctx.restore(); return boxes;
   }
 
-  const api = { removeBackground, extractFrame, blendDefaults, defaultLayers, drawDesign, PRESETS, PATTERNS, SHAPES, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
+  const api = { removeBackground, extractFrame, blendDefaults, defaultLayers, faceDefaults, fadeDefaults, drawDesign, PRESETS, PATTERNS, SHAPES, RATIO, resolve, shuffle, drawCard, drawSheet, sheetSize };
   root.GFC_CARDS = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

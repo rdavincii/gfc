@@ -99,5 +99,10 @@ Match cards → **＋ New template** opens a full-screen studio.
 - Quick looks (presets/patterns/colours) remain under a collapsed section and only apply when no template is chosen.
 Data: `data.cardDesigns[]`, edition `designId` ('none' = off), `settings.defaultDesign`, pack `cardStyle: 'design:<id>'`. Tests: `tests/card-studio-ui.test.js`.
 
+## v5.7 · Face guide and gradient
+- **Face guide:** a dashed circle in the studio (Face guide chip). Drag/resize it once per template. Each player's face is marked in Squad → **Face** (drag the circle onto the face, set size, save). Every card then scales and shifts that player's photo so the face sits in the template's circle. Players without a saved face use a default guess. Turn "Fit photos to this circle" off to place the photo by hand as before. Old templates keep their hand placement.
+- **Gradient:** Gradient chip fades a colour up from the bottom (strength, height, colour; "Card colour" or "Match background") so photos blend in and the name has clear space. On by default for new templates.
+- Data: `design.face {on,x,y,s}`, `design.fade {on,color,amount,height}`, `player.face {x,y,s}` (s = face diameter as a fraction of photo width). Test: `tests/card-face-ui.test.js`. No automatic face detection (iOS Safari has none), so faces are set by hand.
+
 ## Phone link (GitHub Pages)
 Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.

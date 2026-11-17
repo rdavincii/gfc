@@ -66,3 +66,7 @@ See README "v4". Key places: `game.js` (engine), `app.js` → `homeView`, `match
 
 ## v5.6 update: Card Studio
 Built-in card templates (TEMPLATES, tier-by-rating) were removed. Users now build templates in the full-screen studio (app.js `openStudio`, cards.js `drawDesign`/`blendImageData`). See README v5.6 for behaviour and data fields. Not yet tested on a real phone; Pages must be enabled manually in repo Settings.
+
+
+## v5.7 update: face guide + bottom gradient
+See README v5.7. cards.js paintDesign positions the photo from design.face and player.face, then paints design.fade. Studio chips: Face guide, Gradient. Squad cards have a Face button (faceDialog in app.js).
