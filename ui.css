@@ -354,3 +354,5 @@ html.studio-open,html.studio-open body{overflow:hidden}
 .st-nudge .st-btn{min-width:44px}
 @media (min-width:900px){.studio{flex-direction:row;flex-wrap:wrap}.st-top{width:100%;flex:none}.st-stage{flex:1;height:calc(100% - 58px)}.st-dock{width:380px;flex:none;height:calc(100% - 58px);overflow:auto;border-top:0;border-left:1px solid #232a33}.st-chips{flex-wrap:wrap;overflow:visible}}
 @media (prefers-reduced-motion:no-preference){.st-chip,.st-btn{transition:background .15s}}
+.fg-row{display:flex;gap:10px;align-items:flex-start}.fg-row .cut-stage{flex:1;min-width:0}#fgCanvas{max-width:100%;max-height:48vh;width:auto;height:auto;display:block;margin:auto}
+.fg-prev{flex:none;width:34%;max-width:150px;display:flex;flex-direction:column;gap:4px;align-items:center;color:var(--color-muted);font-size:12px}.fg-prev canvas{width:100%;height:auto;border-radius:8px}

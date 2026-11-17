@@ -32,5 +32,6 @@ ok(pf.length===1&&Math.abs(pf[0].face.x-.3)<.06&&Math.abs(pf[0].face.s-.5)<.02,'
 await nav('squad');await page.waitForTimeout(600);
 ok(await page.$(`[data-action="face-${pf[0].id}"]`)!==null,'squad list has a Face button');
 const lab=await page.$eval(`[data-action="face-${pf[0].id}"]`,e=>e.textContent);ok(/✓/.test(lab),'squad list shows face is set');
+await page.click(`[data-action="face-${pf[0].id}"]`);await page.waitForSelector('#fgPrev');ok(true,'live card preview shown in the face dialog');const nb=await page.$('#fgNext');ok(!!nb,'save and next player offered');const pid0=await page.$eval('#modalTitle',e=>e.textContent);await page.click('#fgNext');await page.waitForTimeout(900);const pid1=await page.$eval('#modalTitle',e=>e.textContent);ok(pid0!==pid1,'next player opens');await page.click('#fgCancel');
 await ctx.close();}
 console.log('errors',errors,'fails',fails);await b.close();})();

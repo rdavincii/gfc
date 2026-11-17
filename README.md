@@ -104,5 +104,8 @@ Data: `data.cardDesigns[]`, edition `designId` ('none' = off), `settings.default
 - **Gradient:** Gradient chip fades a colour up from the bottom (strength, height, colour; "Card colour" or "Match background") so photos blend in and the name has clear space. On by default for new templates.
 - Data: `design.face {on,x,y,s}`, `design.fade {on,color,amount,height}`, `player.face {x,y,s}` (s = face diameter as a fraction of photo width). Test: `tests/card-face-ui.test.js`. No automatic face detection (iOS Safari has none), so faces are set by hand.
 
+## v5.8 · Face outline in Squad
+Squad → **Face outline** on each player opens a dialog: drag the circle onto the face, set its size, and watch a live card (using your current template) update. **Save & next player** walks through the whole squad. Saved outlines are used by every template with "Fit photos to this circle" on, so cards update automatically.
+
 ## Phone link (GitHub Pages)
 Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.
