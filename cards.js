@@ -231,12 +231,13 @@
     }
   }
   const blendCache = new WeakMap();
-  function gradedPhoto(im, b) {
+  function gradedPhoto(im, b, want = 0) {
     if (!blendActive(b)) return im;
-    const key = [b.color, b.amount, b.contrast, b.saturation, b.brightness].join('|');
+    const lim = Math.round(Math.min(2400, Math.max(700, want * Math.max(1, im.height / im.width))) / 50) * 50;
+    const key = [b.color, b.amount, b.contrast, b.saturation, b.brightness, lim].join('|');
     let m = blendCache.get(im); if (!m) { m = new Map(); blendCache.set(im, m); }
     if (m.has(key)) return m.get(key);
-    const sc = Math.min(1, 700 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * sc)); c.height = Math.max(1, Math.round(im.height * sc));
+    const sc = Math.min(1, lim / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * sc)); c.height = Math.max(1, Math.round(im.height * sc));
     const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0, c.width, c.height); const id = g.getImageData(0, 0, c.width, c.height); blendImageData(id, b); g.putImageData(id, 0, 0);
     if (m.size > 12) m.clear(); m.set(key, c); return c;
   }
@@ -262,7 +263,7 @@
       const im = opts.photo, gd = d.face && d.face.on ? d.face : null;
       let cx = x + photoL.x * w, cy = y + photoL.y * h, pw = photoL.s * w;
       if (gd) { const pf = player.face || FACE_GUESS, ar = im ? im.height / im.width : 1.2; pw = gd.s * w / pf.s; cx = x + gd.x * w - (pf.x - 0.5) * pw; cy = y + gd.y * h - (pf.y - 0.5) * pw * ar; }
-      if (im) { const src = gradedPhoto(im, d.blend), ph = pw * src.height / src.width; ctx.drawImage(src, cx - pw / 2, cy - ph / 2, pw, ph); boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - ph / 2, w: pw, h: ph }); }
+      if (im) { const tm = ctx.getTransform(), src = gradedPhoto(im, d.blend, pw * Math.hypot(tm.a, tm.b)), ph = pw * src.height / src.width; ctx.drawImage(src, cx - pw / 2, cy - ph / 2, pw, ph); boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - ph / 2, w: pw, h: ph }); }
       else { const s = pw * 0.6; if (opts.crest) { ctx.save(); ctx.globalAlpha = 0.3; ctx.drawImage(opts.crest, cx - s / 2, cy - s / 2, s, s); ctx.restore(); } boxes.push({ id: photoL.id, x: cx - pw / 2, y: cy - pw * 0.6, w: pw, h: pw * 1.2 }); }
     }
     const fd = d.fade;

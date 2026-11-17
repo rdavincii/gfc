@@ -357,3 +357,9 @@ html.studio-open,html.studio-open body{overflow:hidden}
 .fg-row{display:flex;gap:10px;align-items:flex-start}.fg-row .cut-stage{flex:1;min-width:0}#fgCanvas{max-width:100%;max-height:48vh;width:auto;height:auto;display:block;margin:auto}
 .fg-prev{flex:none;width:34%;max-width:150px;display:flex;flex-direction:column;gap:4px;align-items:center;color:var(--color-muted);font-size:12px}.fg-prev canvas{width:100%;height:auto;border-radius:8px}
 .export-scale{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--color-muted)}.export-scale .select{min-height:36px;padding:0 8px}
+.icon-button{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;border:1px solid var(--color-border,rgba(255,255,255,.18));background:rgba(255,255,255,.06);color:inherit;font-size:22px;line-height:1;cursor:pointer}
+.icon-button:hover{background:rgba(255,255,255,.14)}
+.set-list{display:flex;flex-direction:column;gap:6px;padding-bottom:6px}.set-list .eyebrow{margin:12px 0 2px}
+.set-row{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}.set-row>div{min-width:0}.set-row b{display:block}.set-row small{display:block;color:var(--color-muted);margin-top:2px}.set-row .select,.set-row .button{flex:none}
+.settings-sheet{max-height:92vh}.settings-sheet[open]{display:flex;flex-direction:column}.settings-sheet .sheet-body{overflow-y:auto;min-height:0}
+.set-row>div{flex:1}.set-row .select{flex:none;width:auto;min-width:96px;max-width:44%}

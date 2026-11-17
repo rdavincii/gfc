@@ -112,5 +112,10 @@ Squad → **Face outline** on each player opens a dialog: drag the circle onto t
 - **Pitch shape:** Match pack → "Pitch shape on line-up posters": Classic, Rectangle, Rounded, Arch, Perspective, No outline. Saved per match.
 - Card-art images keep their source resolution, so a 3× export of a low-resolution player photo is still limited by that photo. Test: `tests/poster-export.test.js`.
 
+## v5.10 · Settings and sharp card exports
+- **Settings (gear, top right):** Save data (backup file), Restore data, storage summary, Manage fonts, Export size (1×/2×/3×), Tactics pitch style, Instagram calendar export, and Erase data (double-confirmed, back up first).
+- **Card exports** (single card, all cards, sheet) now use the same 1×/2×/3× size as posters and are redrawn at that size. The player-photo cache no longer caps at 700 px, so big exports stay sharp. Files get `@2x`/`@3x`. Photos added in the studio are kept at up to 1400 px; older low-resolution photos are still limited by their own size.
+- Tests: `tests/settings-ui.test.js`.
+
 ## Phone link (GitHub Pages)
 Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.

@@ -24,7 +24,7 @@ d=await idb(page);ok(d.editions[m1].c2==='#00ff00','custom colour saved');
 await page.evaluate(id=>document.querySelector(`[data-action="cards-${id}"]`)?.click(),m2);
 await nav('matches');await page.evaluate(id=>document.querySelector(`[data-action="cards-${id}"]`).click(),m2);await page.waitForTimeout(800);
 d=await idb(page);ok(!d.editions[m2],'other match keeps its own auto design');
-const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-action="cc-export-sheet"]')]);ok(/cards\.png$/.test(dl.suggestedFilename()),'sheet export');
+const [dl]=await Promise.all([page.waitForEvent('download'),page.click('[data-action="cc-export-sheet"]')]);ok(/cards(@[\d.]+x)?\.png$/.test(dl.suggestedFilename()),'sheet export');
 const [d2]=await Promise.all([page.waitForEvent('download'),page.click('[data-action="cc-export-one"]')]);ok(/\.png$/.test(d2.suggestedFilename()),'single card export');
 await page.screenshot({path:`cc-${vp.width}.png`,fullPage:false});
 await ctx.close();}
