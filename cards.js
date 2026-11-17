@@ -278,7 +278,7 @@
       if (l.type === 'photo' || l.visible === false) continue;
       const cx = x + l.x * w, cy = y + l.y * h, lf = l.font ? FONT(l.font) : f;
       ctx.save(); ctx.fillStyle = l.color || '#fff';
-      if (l.shadow) { ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = Math.max(2, l.s * w * 0.16); ctx.shadowOffsetY = Math.max(1, l.s * w * 0.04); }
+      if (l.shadow) { ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = Math.max(2, l.s * w * 0.16) * Math.hypot(ctx.getTransform().a, ctx.getTransform().b); ctx.shadowOffsetY = Math.max(1, l.s * w * 0.04) * Math.hypot(ctx.getTransform().a, ctx.getTransform().b); }
       if (l.type === 'logo') {
         const s = l.s * w; if (opts.crest) { ctx.shadowColor = 'transparent'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, s / 2, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(opts.crest, cx - s / 2, cy - s / 2, s, s); }
         boxes.push({ id: l.id, x: cx - s / 2, y: cy - s / 2, w: s, h: s });

@@ -1,0 +1,22 @@
+const { chromium } = require('playwright');
+let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
+const dim=async dl=>{const p=await dl.path();const b=require('fs').readFileSync(p);return {w:b.readUInt32BE(16),h:b.readUInt32BE(20)};};
+(async()=>{const b=await chromium.launch(),errors=[];
+const ctx=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true});const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+await page.goto('http://localhost:4173/index.html');await page.waitForTimeout(1500);
+const nav=k=>page.evaluate(k=>document.querySelector(`.nav-item[data-nav="${k}"]`).click(),k).then(()=>page.waitForTimeout(500));
+await nav('matches');await page.click('#appContent [data-action="quick-match"]');await page.waitForSelector('#modal[open]');await page.fill('#modal [name="opponent"]','AAA FC');await page.click('#modal [type="submit"]');await page.waitForTimeout(700);
+await nav('game');await page.evaluate(()=>document.querySelector('#appContent [data-nav="packs"]').click());await page.waitForSelector('#packScale');await page.waitForTimeout(1000);
+const exp=async()=>{const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#appContent [data-action="pack-export"]')]);return {d:await dim(dl),n:dl.suggestedFilename()};};
+await page.selectOption('#packScale','1');let r=await exp();ok(r.d.w===1080&&r.d.h===1350,`1x is 1080x1350 (${r.d.w}x${r.d.h})`);
+await page.selectOption('#packScale','2');r=await exp();ok(r.d.w===2160&&r.d.h===2700&&/@2x/.test(r.n),`2x is 2160x2700 (${r.n})`);
+await page.selectOption('#packScale','3');r=await exp();ok(r.d.w===3240&&r.d.h===4050,`3x is 3240x4050 (${r.d.w}x${r.d.h})`);
+await page.selectOption('#packFormat','story');await page.waitForTimeout(600);r=await exp();ok(r.d.w*r.d.h<=16000000&&r.d.w>2160,`story at 3x capped for phones (${r.d.w}x${r.d.h})`);
+await page.selectOption('#packFormat','feed');await page.click('[data-pack-kind="lineupA"]');await page.waitForTimeout(900);
+const sig=()=>page.evaluate(()=>{const c=document.querySelector('#packCanvas');return c.toDataURL().length+c.toDataURL().slice(-80)});
+const seen=new Set();for(const k of ['classic','rect','rounded','arch','perspective','none']){await page.selectOption('#packPitch',k);await page.waitForTimeout(500);seen.add(await sig());}
+ok(seen.size===6,`6 pitch shapes all draw differently (${seen.size})`);
+await page.selectOption('#packPitch','arch');await page.waitForTimeout(300);await page.reload();await page.waitForTimeout(1500);
+await nav('game');await page.evaluate(()=>document.querySelector('#appContent [data-nav="packs"]').click());await page.waitForSelector('#packPitch');
+ok(await page.$eval('#packPitch',e=>e.value)==='arch'&&await page.$eval('#packScale',e=>e.value)==='3','pitch and export size are remembered');
+console.log('errors',errors,'fails',fails);await b.close();})();

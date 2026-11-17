@@ -29,7 +29,7 @@
     d.squad=d.squad.map(p=>{const original=initialSquad.find(q=>q.id===p.id);let templateId=p.templateId||(String(p.card||'').startsWith('assets/cards/')?'gfc-original':'gfc-classic');if(!known(templateId)||(templateId==='gfc-original'&&!original?.card&&!p.card))templateId='gfc-classic';return {...original,...p,templateId,card:templateId==='gfc-original'?(original?.card||p.card||''):(p.card||'')};});
     d.squad.forEach(p=>{const f=p.face,ok=f&&typeof f==='object'&&[f.x,f.y,f.s].every(v=>Number.isFinite(+v)&&v!==null);if(ok)p.face={x:Math.min(1,Math.max(0,+f.x)),y:Math.min(1,Math.max(0,+f.y)),s:Math.min(.95,Math.max(.05,+f.s))};else delete p.face;});
     d.packs={};for(const m of d.matches){const r=raw.packs?.[m.id];if(!r||typeof r!=='object')continue;const D=PACK_DEFAULT,n=(k,lo,hi)=>cl(r[k]??D[k],lo,hi);
-      d.packs[m.id]={bg:typeof r.bg==='string'&&r.bg.startsWith('data:image/')?r.bg:'',fx:n('fx',0,100),fy:n('fy',0,100),tint:n('tint',0,1),shade:n('shade',0,.8),vignette:n('vignette',0,.9),grain:n('grain',0,1),primary:/^#[0-9a-f]{6}$/i.test(r.primary)?r.primary:D.primary,font:typeof r.font==='string'?r.font:'',format:r.format==='story'?'story':'feed',cardStyle:r.cardStyle==='match'||(Array.isArray(raw.cardStyles)&&raw.cardStyles.some(x=>x&&x.id===r.cardStyle))||(Array.isArray(raw.cardDesigns)&&raw.cardDesigns.some(x=>x&&`design:${x.id}`===r.cardStyle))?r.cardStyle:'',layouts:r.layouts&&typeof r.layouts==='object'?r.layouts:{}};}
+      d.packs[m.id]={bg:typeof r.bg==='string'&&r.bg.startsWith('data:image/')?r.bg:'',fx:n('fx',0,100),fy:n('fy',0,100),tint:n('tint',0,1),shade:n('shade',0,.8),vignette:n('vignette',0,.9),grain:n('grain',0,1),primary:/^#[0-9a-f]{6}$/i.test(r.primary)?r.primary:D.primary,font:typeof r.font==='string'?r.font:'',format:r.format==='story'?'story':'feed',pitch:PITCHES.some(q=>q[0]===r.pitch)?r.pitch:'classic',cardStyle:r.cardStyle==='match'||(Array.isArray(raw.cardStyles)&&raw.cardStyles.some(x=>x&&x.id===r.cardStyle))||(Array.isArray(raw.cardDesigns)&&raw.cardDesigns.some(x=>x&&`design:${x.id}`===r.cardStyle))?r.cardStyle:'',layouts:r.layouts&&typeof r.layouts==='object'?r.layouts:{}};}
     d.fonts=Array.isArray(raw.fonts)?raw.fonts.filter(x=>x&&x.name&&x.src).map(x=>({name:x.name,src:x.src})):[];
     d.cardTemplates.forEach(t=>{if(Array.isArray(t.fonts)){t.fonts.forEach(x=>{if(x&&x.name&&x.src&&!d.fonts.some(y=>y.name===x.name))d.fonts.push({name:x.name,src:x.src});});delete t.fonts;}});
     const cleanEd=s=>{const o={};if(!s||typeof s!=='object')return o;if(GC.PRESETS.some(q=>q.id===s.preset))o.preset=s.preset;if(GC.PATTERNS.some(q=>q[0]===s.pattern))o.pattern=s.pattern;if(GC.SHAPES.some(q=>q[0]===s.shape))o.shape=s.shape;if(s.frameTop===true)o.frameTop=true;for(const k of ['shapeImg','bg','frame'])if(typeof s[k]==='string'&&s[k].startsWith('data:image/'))o[k]=s[k];for(const k of ['c1','c2','accent','ink'])if(/^#[0-9a-f]{6}$/i.test(s[k]))o[k]=s[k];if(typeof s.label==='string')o.label=s.label.slice(0,18);if(s.stats===false)o.stats=false;if(typeof s.designId==='string'&&s.designId.length<=40)o.designId=s.designId;if(s.shine===false)o.shine=false;if(typeof s.font==='string'&&(d.fonts.some(f=>f.name===s.font)||['Winner GFC','Bebas GFC','Arial'].includes(s.font)))o.font=s.font;return o;};
@@ -46,7 +46,7 @@
     if(d.formation.matchId&&!d.matches.some(x=>x.id===d.formation.matchId))d.formation.matchId='';
     for(const set of Object.values(d.lineups)){const seen=new Set();for(const team of ['A','B']){const t=set[team];if(!t||typeof t!=='object'){delete set[team];continue;}t.size=t.size===7?7:11;if(!shapesFor(t.size).includes(t.shape))t.shape=shapesFor(t.size)[0];t.slots=t.slots&&typeof t.slots==='object'?t.slots:{};{const pos={};for(const [k,v] of Object.entries(t.pos&&typeof t.pos==='object'?t.pos:{}))if(v&&Number.isFinite(+v.x)&&Number.isFinite(+v.y))pos[k]={x:Math.min(.94,Math.max(.06,+v.x)),y:Math.min(.95,Math.max(.05,+v.y))};t.pos=pos;}const valid=new Set();formationLayers(t.shape).forEach((line,li)=>line.forEach((_,i)=>valid.add(`${li}-${i}`)));for(const [key,id] of Object.entries(t.slots)){if(!valid.has(key)||!d.squad.some(p=>p.id===id)||seen.has(id))delete t.slots[key];else seen.add(id);}for(const k of Object.keys(t.pos))if(!t.slots[k])delete t.pos[k];t.captain=typeof t.captain==='string'&&Object.values(t.slots).includes(t.captain)?t.captain:'';}}
     {const ids=new Set(d.squad.map(p=>p.id)),okDate=x=>/^\d{4}-\d{2}-\d{2}$/.test(x||''),allAttrs=[...G.OUTFIELD_ATTRS,...G.GK_ATTRS];
-      d.rules=G.mergeRules(raw.rules);d.settings={pitchTheme:Object.keys(PITCH_THEMES).includes(raw.settings?.pitchTheme)?raw.settings.pitchTheme:'pitch-classic',defaultDesign:d.cardDesigns.some(x=>x.id===raw.settings?.defaultDesign)?raw.settings.defaultDesign:''};
+      d.rules=G.mergeRules(raw.rules);d.settings={pitchTheme:Object.keys(PITCH_THEMES).includes(raw.settings?.pitchTheme)?raw.settings.pitchTheme:'pitch-classic',defaultDesign:d.cardDesigns.some(x=>x.id===raw.settings?.defaultDesign)?raw.settings.defaultDesign:'',exportScale:[1,2,3].includes(+raw.settings?.exportScale)?+raw.settings.exportScale:2};
       d.training=(Array.isArray(raw.training)?raw.training:[]).filter(x=>x&&okDate(x.date)).map(x=>({id:x.id||uid(),date:x.date,note:String(x.note||'').slice(0,200),attended:[...new Set((Array.isArray(x.attended)?x.attended:[]).filter(id=>ids.has(id)))]}));
       const nm=o=>Object.fromEntries(Object.entries(o&&typeof o==='object'?o:{}).filter(([k,v])=>ids.has(k)&&Number(v)>0).map(([k,v])=>[k,Math.min(30,Math.floor(Number(v)))]));
       d.matches.forEach(m=>{const s=m.stats;if(!s||typeof s!=='object'){delete m.stats;return;}const played=[...new Set((Array.isArray(s.played)?s.played:[]).filter(id=>ids.has(id)))];m.stats={played,goals:nm(s.goals),assists:nm(s.assists),potm:played.includes(s.potm)?s.potm:''};});
@@ -467,20 +467,27 @@
   // ---- Line-up poster: draws the board's pitch for Team A, Team B or both ----
   async function posterImg(src){if(!src)return null;let im=posterImages.get(src);if(!im){im=await new Promise(resolve=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>resolve(null);i.src=src;});if(im)posterImages.set(src,im);}return im;}
   // Style follows the club's Instagram: crimson-to-black gradient, cropped giant heading, white pitch lines, dark-red player cards.
-  async function drawPitchPanel(ctx,x,y,w,h,team,hf,cap=86,ec=null){
+  async function drawPitchPanel(ctx,x,y,w,h,team,hf,cap=86,ec=null,pitch='classic'){
     const layers=formationLayers(team.shape),maxN=Math.max(...layers.map(l=>l.length)),cw=Math.min(w/(maxN+.6)*.82,cap),chh=cw*(ec?GC.RATIO:1.5);
-    ctx.save();ctx.strokeStyle='rgba(255,247,245,.92)';ctx.lineWidth=Math.max(2,w/190);
-    const L=x+6,R=x+w-6,T=y+6,B=y+h-6,mx=(L+R)/2,mid=(T+B)/2;
-    ctx.beginPath();ctx.moveTo(L+(R-L)*.0,B);ctx.lineTo(L,T+(B-T)*.08);ctx.lineTo(L+(R-L)*.06,T);ctx.lineTo(R-(R-L)*.06,T);ctx.lineTo(R,T+(B-T)*.08);ctx.lineTo(R,B);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(L,mid);ctx.lineTo(R,mid);ctx.stroke();ctx.beginPath();ctx.arc(mx,mid,(R-L)*.09,0,Math.PI*2);ctx.stroke();
-    ctx.strokeRect(L+(R-L)*.2,T,(R-L)*.6,(B-T)*.14);ctx.strokeRect(L+(R-L)*.34,B-(B-T)*.075,(R-L)*.32,(B-T)*.075);ctx.strokeRect(L+(R-L)*.2,B-(B-T)*.14,(R-L)*.6,(B-T)*.14);
+    ctx.save();ctx.strokeStyle='rgba(255,247,245,.92)';ctx.lineWidth=Math.max(2,w/190);ctx.lineJoin='round';
+    const L=x+6,R=x+w-6,T=y+6,B=y+h-6,mx=(L+R)/2,mid=(T+B)/2,kind=pitch||'classic',W2=R-L,H2=B-T;
+    const path=()=>{ctx.beginPath();
+      if(kind==='classic'){ctx.moveTo(L,B);ctx.lineTo(L,T+H2*.08);ctx.lineTo(L+W2*.06,T);ctx.lineTo(R-W2*.06,T);ctx.lineTo(R,T+H2*.08);ctx.lineTo(R,B);}
+      else if(kind==='rect'||kind==='none'){ctx.rect(L,T,W2,H2);}
+      else if(kind==='rounded'){const r=W2*.09;ctx.moveTo(L+r,T);ctx.lineTo(R-r,T);ctx.quadraticCurveTo(R,T,R,T+r);ctx.lineTo(R,B-r);ctx.quadraticCurveTo(R,B,R-r,B);ctx.lineTo(L+r,B);ctx.quadraticCurveTo(L,B,L,B-r);ctx.lineTo(L,T+r);ctx.quadraticCurveTo(L,T,L+r,T);ctx.closePath();}
+      else if(kind==='arch'){const r=W2*.5;ctx.moveTo(L,B);ctx.lineTo(L,T+r);ctx.arc(mx,T+r,r,Math.PI,0);ctx.lineTo(R,B);ctx.closePath();}
+      else{const ins=W2*.13;ctx.moveTo(L+ins,T);ctx.lineTo(R-ins,T);ctx.lineTo(R,B);ctx.lineTo(L,B);ctx.closePath();}};
+    if(kind!=='none'){path();ctx.stroke();ctx.save();path();ctx.clip();
+      const at=kind==='arch'?B-H2*.9:T;
+      ctx.beginPath();ctx.moveTo(L-4,mid);ctx.lineTo(R+4,mid);ctx.stroke();ctx.beginPath();ctx.arc(mx,mid,W2*.09,0,Math.PI*2);ctx.stroke();
+      ctx.strokeRect(L+W2*.2,at,W2*.6,H2*.14);ctx.strokeRect(L+W2*.34,at,W2*.32,H2*.075);ctx.strokeRect(L+W2*.2,B-H2*.14,W2*.6,H2*.14);ctx.strokeRect(L+W2*.34,B-H2*.075,W2*.32,H2*.075);ctx.restore();}
     for(let li=0;li<layers.length;li++){const line=layers[li];for(let i=0;i<line.length;i++){
       const sp=slotXY(team,li,i,line.length,layers.length),cx=x+sp.x*w,cy=y+sp.y*h,p=data.squad.find(q=>q.id===team.slots[`${li}-${i}`]),x0=cx-cw/2,y0=cy-chh/2;
       ctx.textAlign='center';
-      if(p&&ec){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10;GC.drawCard(ctx,x0,y0,cw,p,ec.ed,{photo:await posterImg(p.photo),crest:ec.look.crest,bgImage:ec.look.bgImage,shapeImage:ec.look.shapeImage,frameImage:ec.look.frameImage,attrKeys:G.attrKeys(p),potm:ec.m.stats?.potm===p.id});ctx.shadowBlur=0;}
+      if(p&&ec){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10*sbScale(ctx);GC.drawCard(ctx,x0,y0,cw,p,ec.ed,{photo:await posterImg(p.photo),crest:ec.look.crest,bgImage:ec.look.bgImage,shapeImage:ec.look.shapeImage,frameImage:ec.look.frameImage,attrKeys:G.attrKeys(p),potm:ec.m.stats?.potm===p.id});ctx.shadowBlur=0;}
       else if(p){
         const im=await posterImg(p.card);
-        if(im){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10;ctx.drawImage(im,x0,y0,cw,chh);ctx.shadowBlur=0;}
+        if(im){ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10*sbScale(ctx);ctx.drawImage(im,x0,y0,cw,chh);ctx.shadowBlur=0;}
         else{const ph=await posterImg(p.photo);ctx.save();ctx.beginPath();ctx.roundRect?ctx.roundRect(x0,y0,cw,chh,8):ctx.rect(x0,y0,cw,chh);ctx.fillStyle='#4a0a10';ctx.fill();ctx.clip();if(ph){const s=Math.max(cw/ph.width,chh*.75/ph.height);ctx.drawImage(ph,cx-ph.width*s/2,y0,ph.width*s,ph.height*s);}ctx.restore();
           ctx.fillStyle='rgba(20,4,6,.82)';ctx.fillRect(x0,y0+chh*.72,cw,chh*.28);ctx.fillStyle='#fff';ctx.textBaseline='middle';let nf=Math.min(cap*.18,cw*.2);ctx.font=`bold ${nf}px ${hf}`;const name=String(p.name).toUpperCase();while(ctx.measureText(name).width>cw-6&&nf>7){nf-=.5;ctx.font=`bold ${nf}px ${hf}`;}ctx.fillText(name,cx,y0+chh*.86);}
       }else{ctx.save();ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(255,247,245,.55)';ctx.lineWidth=2;ctx.strokeRect(x0,y0,cw,chh);ctx.restore();ctx.fillStyle='rgba(255,247,245,.7)';ctx.textBaseline='middle';ctx.font=`bold ${Math.max(10,cw*.24)}px ${hf}`;ctx.fillText(line[i],cx,cy);}
@@ -488,8 +495,9 @@
     ctx.restore();
   }
   // ---- Match pack: one art style per match, shared by every poster of that match ----
-  const PACK_W=1080,PACK_KINDS=[['next','Next match'],['matchday','Matchday'],['score','Full time'],['lineupA','Line-up A'],['lineupB','Line-up B'],['rosterA','Squad list A'],['rosterB','Squad list B']];
-  const PACK_DEFAULT={bg:'',fx:50,fy:45,tint:.55,shade:.3,vignette:.55,grain:.4,primary:'#ed1c24',font:'',format:'feed',cardStyle:'',layouts:{}};
+  const PITCHES=[['classic','Classic'],['rect','Rectangle'],['rounded','Rounded'],['arch','Arch'],['perspective','Perspective'],['none','No outline']];
+  const PACK_W=1080,MAX_PX=16000000,PACK_KINDS=[['next','Next match'],['matchday','Matchday'],['score','Full time'],['lineupA','Line-up A'],['lineupB','Line-up B'],['rosterA','Squad list A'],['rosterB','Squad list B']];
+  const PACK_DEFAULT={bg:'',fx:50,fy:45,tint:.55,shade:.3,vignette:.55,grain:.4,primary:'#ed1c24',font:'',format:'feed',pitch:'classic',cardStyle:'',layouts:{}};
   const packUi={matchId:'',kind:'next',selected:'',boxes:{}};
   let packPaint=Promise.resolve(),packToken=0;
   const cl=(v,lo,hi)=>Math.min(hi,Math.max(lo,Number.isFinite(+v)?+v:lo));
@@ -510,16 +518,17 @@
     if(kind.startsWith('lineup')){const t=peek(m.id,team)||{shape:'4-3-3'};return [T('title','Heading','FORMATION',.5,.045,.27,{accent:true}),T('sub','Details line',[`GFC VS ${opp}`,m.date?fmtDate(m.date):''].filter(Boolean).join('  ·  ').toUpperCase(),.5,.16,.026,{weight:'bold'}),T('shape','Formation label',t.shape,.1,.945,.03,{italic:true,align:'left'}),T('team','Team label',`TEAM ${team}`,.9,.945,.03,{italic:true,align:'right'}),logo(.5,.94,.07)];}
     return [T('title','Heading',`TEAM ${team}`,.5,.07,.1,{accent:true}),T('sub','Details line',`GFC VS ${opp}${m.date?'  ·  '+fmtDate(m.date):''}`.toUpperCase(),.5,.125,.026,{weight:'bold'}),{id:'list',label:'Player list',type:'list',lines:teamStarters(m,team),x:.38,y:.17,s:.058},logo(.5,.94,.07)];
   }
+  const sbScale=ctx=>{const t=ctx.getTransform();return Math.hypot(t.a,t.b)||1;};
   const packLayout=(pack,kind,id)=>pack.layouts[kind]?.[id]||{};
-  async function renderPack(canvas,m,pack,kind){
-    const token=++packToken,story=pack.format==='story',W=PACK_W,H=story?1920:1350;
+  async function renderPack(canvas,m,pack,kind,scale=1){
+    const token=++packToken,story=pack.format==='story',W=PACK_W,H=story?1920:1350;scale=Math.min(scale,Math.sqrt(MAX_PX/(W*H)));
     await ensureFonts();const hf=posterFontStack(pack.font);try{await document.fonts.load(`700 40px ${hf}`);}catch{}
     const bg=pack.bg?await posterImg(pack.bg):null,logo=await posterImg('assets/brand/gfc-logo.png');
     const lineup=kind.startsWith('lineup')?peek(m.id,kind.slice(-1))||{size:11,shape:'4-3-3',slots:{}}:null;
     if(lineup)for(const id of Object.values(lineup.slots)){const p=data.squad.find(q=>q.id===id);if(p){await posterImg(p.card);await posterImg(p.photo);}}
     if(token!==packToken)return;
-    canvas.width=W;canvas.height=H;canvas.style.aspectRatio=`${W} / ${H}`;
-    const ctx=canvas.getContext('2d'),red=pack.primary;ctx.fillStyle='#140306';ctx.fillRect(0,0,W,H);
+    canvas.width=Math.round(W*scale);canvas.height=Math.round(H*scale);canvas.style.aspectRatio=`${W} / ${H}`;
+    const ctx=canvas.getContext('2d'),red=pack.primary;ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.fillStyle='#140306';ctx.fillRect(0,0,W,H);
     if(bg){const s=Math.max(W/bg.width,H/bg.height),sw=W/s,sh=H/s;ctx.drawImage(bg,(bg.width-sw)*pack.fx/100,(bg.height-sh)*pack.fy/100,sw,sh,0,0,W,H);}
     else{const g=ctx.createRadialGradient(W*.5,H*.45,W*.1,W*.5,H*.5,H*.75);g.addColorStop(0,'#b5141a');g.addColorStop(.6,'#5e0a10');g.addColorStop(1,'#140306');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
     if(bg&&pack.tint>0){ctx.globalAlpha=pack.tint;ctx.globalCompositeOperation='saturation';ctx.fillStyle='#808080';ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='multiply';ctx.fillStyle=red;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;}
@@ -527,7 +536,7 @@
     if(pack.vignette>0){const v=ctx.createRadialGradient(W/2,H/2,W*.35,W/2,H/2,H*.72);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,`rgba(0,0,0,${pack.vignette})`);ctx.fillStyle=v;ctx.fillRect(0,0,W,H);}
     ctx.fillStyle='rgba(255,255,255,.06)';for(let i=0,n=Math.round(pack.grain*5000);i<n;i++){const s=(i*9301+49297)%233280;ctx.fillRect(s%W,(s*7)%H,1.6,1.6);}
     let ec=null;if(lineup&&pack.cardStyle){const ed=edFor(m,pack.cardStyle);if(ed)ec={ed,m,look:await cardAssets(ed)};}
-    if(lineup)await drawPitchPanel(ctx,40,H*.2,W-80,H*.69,lineup,hf,140,ec);
+    if(lineup)await drawPitchPanel(ctx,40,H*.2,W-80,H*.69,lineup,hf,140,ec,pack.pitch);
     const boxes={};
     for(const el of packElements(kind,m)){
       const ov=packLayout(pack,kind,el.id);if(ov.hide)continue;
@@ -547,8 +556,8 @@
     packUi.boxes=boxes;
     const sel=boxes[packUi.selected];if(sel&&canvas.dataset.export!=='1'){ctx.save();ctx.setLineDash([10,8]);ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.strokeRect(sel.x-6,sel.y-6,sel.w+12,sel.h+12);ctx.restore();}
   }
-  async function packBlob(m,pack,kind){
-    const c=document.createElement('canvas');c.dataset.export='1';await renderPack(c,m,pack,kind);
+  async function packBlob(m,pack,kind,scale){
+    const c=document.createElement('canvas');c.dataset.export='1';await renderPack(c,m,pack,kind,scale);
     return new Promise(r=>c.toBlob(r,'image/png'));
   }
   const packMatch=()=>data.matches.find(x=>x.id===packUi.matchId);
@@ -557,7 +566,7 @@
     if(!data.matches.length)return heading('Match pack','Every match gets its own art style, shared by all of its posters.')+empty('Add a match first','A pack is built for one match, then every poster for that match follows its style.','quick-match','Add a match');
     if(!data.matches.some(x=>x.id===packUi.matchId))packUi.matchId=(data.matches.find(x=>x.id===data.formation.matchId)||upcoming()||data.matches[0]).id;
     const matches=[...data.matches].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-    return `${heading('Match pack','One art style per match. Set it once, then every poster for that match follows it. Drag any text on the poster to move it.',btn('Export all posters','pack-export-all')+btn('Export this poster','pack-export','button button-secondary'))}
+    return `${heading('Match pack','One art style per match. Set it once, then every poster for that match follows it. Drag any text on the poster to move it.',`<label class="export-scale"><span>Size</span><select class="select" id="packScale">${[1,2,3].map(n=>`<option value="${n}" ${(data.settings.exportScale||1)===n?'selected':''}>${n}× · ${PACK_W*n} px wide</option>`).join('')}</select></label>`+btn('Export all posters','pack-export-all')+btn('Export this poster','pack-export','button button-secondary'))}
 <section class="panel match-bar"><label class="field"><span class="field-label">Match</span><select id="packMatch" class="select">${matches.map(m=>`<option value="${safe(m.id)}" ${m.id===packUi.matchId?'selected':''}>${safe(matchLabel(m))}</option>`).join('')}</select></label><label class="field"><span class="field-label">Copy style from</span><select id="packCopy" class="select"></select></label></section>
 <div class="pack-tabs" role="tablist">${PACK_KINDS.map(([k,l])=>`<button type="button" class="team-tab ${k===packUi.kind?'is-active':''}" data-pack-kind="${k}">${l}</button>`).join('')}</div>
 <div class="pack-layout"><div class="pack-stage"><canvas id="packCanvas" class="pack-canvas"></canvas><p class="caption">Tap a text to select it, then drag it or use the sliders. Exports are 1080 px wide.</p></div><div class="pack-side"><section class="panel pack-panel" id="packStyle"></section><section class="panel pack-panel" id="packSel"></section></div></div>`;
@@ -570,9 +579,11 @@
     $('#packCopy').onchange=async e=>{const src=data.packs[e.target.value];if(!src)return;if(!confirm('Replace this match\'s style and text positions with the copied one?'))return;const prev=data.packs[m.id];data.packs[m.id]=JSON.parse(JSON.stringify(src));if(!await persist()){data.packs[m.id]=prev;return;}setPage('packs');toast('Style copied.');};
     $$('[data-pack-kind]').forEach(b=>b.onclick=()=>{packUi.kind=b.dataset.packKind;packUi.selected='';setPage('packs');});
     const sliders=[['tint','Red tint on photo',0,1,.05],['shade','Darken',0,.8,.05],['vignette','Vignette',0,.9,.05],['grain','Film grain',0,1,.05],['fx','Photo position · left to right',0,100,1],['fy','Photo position · top to bottom',0,100,1]];
-    $('#packStyle').innerHTML=`<h3>Style for this match</h3><label class="field"><span class="field-label">Background (PSD, PSB, PNG, JPG)</span><input class="input" type="file" id="packBg" accept=".psd,.psb,.png,.jpg,.jpeg,.webp"></label>${pack.bg?'<button class="button button-quiet button-small" type="button" id="packBgClear">Remove background</button>':'<p class="caption">No background yet, so the default red gradient is used. A Photoshop file is flattened into one picture; layers are not kept.</p>'}<div id="packBgNote" class="caption"></div>${sliders.map(([k,l,lo,hi,st])=>`<label class="field"><span class="field-label">${l}</span><input type="range" data-pack-range="${k}" min="${lo}" max="${hi}" step="${st}" value="${pack[k]}"></label>`).join('')}<label class="field"><span class="field-label">Heading font</span><select class="select" id="packFont">${[['','Default (Winner GFC)'],...fontChoices().map(n=>[n,n])].map(([v,l])=>`<option value="${safe(v)}" ${v===pack.font?'selected':''}>${safe(l)}</option>`).join('')}</select></label><div class="pack-row"><label class="field"><span class="field-label">Accent colour</span><input class="input" type="color" id="packColor" value="${pack.primary}"></label><label class="field"><span class="field-label">Format</span><select class="select" id="packFormat"><option value="feed" ${pack.format==='feed'?'selected':''}>Feed 4:5</option><option value="story" ${pack.format==='story'?'selected':''}>Story 9:16</option></select></label></div><label class="field"><span class="field-label">Player cards on line-up posters</span><select class="select" id="packCardStyle"><option value="">Each player's own card</option><option value="match" ${pack.cardStyle==='match'?'selected':''}>This match's card style</option>${data.cardDesigns.map(s=>`<option value="design:${safe(s.id)}" ${pack.cardStyle==='design:'+s.id?'selected':''}>${safe(s.name)} (template)</option>`).join('')}${data.cardStyles.map(s=>`<option value="${safe(s.id)}" ${pack.cardStyle===s.id?'selected':''}>${safe(s.name)} (saved)</option>`).join('')}</select></label><button class="button button-quiet button-small" type="button" data-action="manage-fonts">Manage fonts</button>`;
+    $('#packStyle').innerHTML=`<h3>Style for this match</h3><label class="field"><span class="field-label">Background (PSD, PSB, PNG, JPG)</span><input class="input" type="file" id="packBg" accept=".psd,.psb,.png,.jpg,.jpeg,.webp"></label>${pack.bg?'<button class="button button-quiet button-small" type="button" id="packBgClear">Remove background</button>':'<p class="caption">No background yet, so the default red gradient is used. A Photoshop file is flattened into one picture; layers are not kept.</p>'}<div id="packBgNote" class="caption"></div>${sliders.map(([k,l,lo,hi,st])=>`<label class="field"><span class="field-label">${l}</span><input type="range" data-pack-range="${k}" min="${lo}" max="${hi}" step="${st}" value="${pack[k]}"></label>`).join('')}<label class="field"><span class="field-label">Heading font</span><select class="select" id="packFont">${[['','Default (Winner GFC)'],...fontChoices().map(n=>[n,n])].map(([v,l])=>`<option value="${safe(v)}" ${v===pack.font?'selected':''}>${safe(l)}</option>`).join('')}</select></label><div class="pack-row"><label class="field"><span class="field-label">Accent colour</span><input class="input" type="color" id="packColor" value="${pack.primary}"></label><label class="field"><span class="field-label">Format</span><select class="select" id="packFormat"><option value="feed" ${pack.format==='feed'?'selected':''}>Feed 4:5</option><option value="story" ${pack.format==='story'?'selected':''}>Story 9:16</option></select></label></div><label class="field"><span class="field-label">Player cards on line-up posters</span><select class="select" id="packCardStyle"><option value="">Each player's own card</option><option value="match" ${pack.cardStyle==='match'?'selected':''}>This match's card style</option>${data.cardDesigns.map(s=>`<option value="design:${safe(s.id)}" ${pack.cardStyle==='design:'+s.id?'selected':''}>${safe(s.name)} (template)</option>`).join('')}${data.cardStyles.map(s=>`<option value="${safe(s.id)}" ${pack.cardStyle===s.id?'selected':''}>${safe(s.name)} (saved)</option>`).join('')}</select></label><label class="field"><span class="field-label">Pitch shape on line-up posters</span><select class="select" id="packPitch">${PITCHES.map(([k,l])=>`<option value="${k}" ${pack.pitch===k?'selected':''}>${l}</option>`).join('')}</select></label><button class="button button-quiet button-small" type="button" data-action="manage-fonts">Manage fonts</button>`;
     $$('[data-pack-range]',$('#packStyle')).forEach(r=>r.oninput=()=>{pack[r.dataset.packRange]=Number(r.value);packRepaint();save();});
     $('#packFont').onchange=e=>{pack.font=e.target.value;packRepaint();save();};
+    $('#packPitch').onchange=e=>{pack.pitch=e.target.value;packRepaint();save();};
+    $('#packScale')&&($('#packScale').onchange=e=>{data.settings.exportScale=+e.target.value;persist();});
     $('#packCardStyle').onchange=e=>{pack.cardStyle=e.target.value;packRepaint();save();};
     $('#packColor').oninput=e=>{pack.primary=e.target.value;packRepaint();save();};
     $('#packFormat').onchange=e=>{pack.format=e.target.value;packRepaint();save();};
@@ -606,7 +617,7 @@
     // drag on canvas
     const canvas=$('#packCanvas');canvas.style.touchAction=packUi.selected?'none':'auto';let drag=null,raf=0;
     canvas.onpointerdown=e=>{
-      const r=canvas.getBoundingClientRect(),px=(e.clientX-r.left)*canvas.width/r.width,py=(e.clientY-r.top)*canvas.height/r.height;
+      const r=canvas.getBoundingClientRect(),px=(e.clientX-r.left)*PACK_W/r.width,py=(e.clientY-r.top)*(canvas.height/canvas.width*PACK_W)/r.height;
       const id=Object.keys(packUi.boxes).reverse().find(k=>{const b=packUi.boxes[k];return px>=b.x-10&&px<=b.x+b.w+10&&py>=b.y-10&&py<=b.y+b.h+10;});
       if(!id){if(packUi.selected){packUi.selected='';setPage('packs');}return;}
       const el=els.find(x=>x.id===id),ov=packLayout(pack,packUi.kind,id),wasSelected=packUi.selected===id;packUi.selected=id;
@@ -620,7 +631,9 @@
   async function exportPack(all){
     const m=packMatch();if(!m)return;const pack=getPack(m.id),kinds=all?PACK_KINDS.map(k=>k[0]).filter(k=>!/^(lineup|roster)/.test(k)||placedCount(m.id,k.slice(-1))):[packUi.kind];
     if(!kinds.length)return;toast(all?`Exporting ${kinds.length} posters…`:'Exporting…');
-    for(const k of kinds){const blob=await packBlob(m,pack,k);if(!blob){toast('Could not export a poster. Please try again.');return;}download(blob,`GFC-${(m.opponent||'match').replace(/[^\w]+/g,'-')}-${k}.png`);if(all)await new Promise(r=>setTimeout(r,500));}
+    const sc=data.settings.exportScale||1,eff=Math.min(sc,Math.sqrt(MAX_PX/(PACK_W*(pack.format==='story'?1920:1350)))),tag=eff>1.001?`@${+eff.toFixed(2)}x`:'';
+    if(eff<sc-.01)toast(`Story at ${sc}× is too big for phones, so it is exported at ${+eff.toFixed(1)}×.`);
+    for(const k of kinds){const blob=await packBlob(m,pack,k,sc);if(!blob){toast('Could not export a poster. Please try again.');return;}download(blob,`GFC-${(m.opponent||'match').replace(/[^\w]+/g,'-')}-${k}${tag}.png`);if(all)await new Promise(r=>setTimeout(r,500));}
     data.progress.exports+=kinds.length;persist();toast(all?'Pack exported.':'Poster exported.');
   }
 

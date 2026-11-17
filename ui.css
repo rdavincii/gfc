@@ -356,3 +356,4 @@ html.studio-open,html.studio-open body{overflow:hidden}
 @media (prefers-reduced-motion:no-preference){.st-chip,.st-btn{transition:background .15s}}
 .fg-row{display:flex;gap:10px;align-items:flex-start}.fg-row .cut-stage{flex:1;min-width:0}#fgCanvas{max-width:100%;max-height:48vh;width:auto;height:auto;display:block;margin:auto}
 .fg-prev{flex:none;width:34%;max-width:150px;display:flex;flex-direction:column;gap:4px;align-items:center;color:var(--color-muted);font-size:12px}.fg-prev canvas{width:100%;height:auto;border-radius:8px}
+.export-scale{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--color-muted)}.export-scale .select{min-height:36px;padding:0 8px}

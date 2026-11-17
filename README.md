@@ -107,5 +107,10 @@ Data: `data.cardDesigns[]`, edition `designId` ('none' = off), `settings.default
 ## v5.8 · Face outline in Squad
 Squad → **Face outline** on each player opens a dialog: drag the circle onto the face, set its size, and watch a live card (using your current template) update. **Save & next player** walks through the whole squad. Saved outlines are used by every template with "Fit photos to this circle" on, so cards update automatically.
 
+## v5.9 · Poster export size and pitch shape
+- **Export size:** Match pack → Size 1×, 2× or 3× (1080, 2160 or 3240 px wide). The poster is redrawn at that size (not enlarged), so text, shapes and card art stay sharp when zoomed. Files get an `@2x`/`@3x` suffix. Story posters at 3× are capped (about 2.8×) because iPhone browsers refuse canvases above ~16 million pixels. The choice is remembered.
+- **Pitch shape:** Match pack → "Pitch shape on line-up posters": Classic, Rectangle, Rounded, Arch, Perspective, No outline. Saved per match.
+- Card-art images keep their source resolution, so a 3× export of a low-resolution player photo is still limited by that photo. Test: `tests/poster-export.test.js`.
+
 ## Phone link (GitHub Pages)
 Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.
