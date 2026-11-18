@@ -18,6 +18,8 @@ const before=px.centre;await page.click('[data-cut-brush="erase"]');const cb=awa
 await page.mouse.move(cb.x+cb.width*.45,cb.y+cb.height*.3);await page.mouse.down();await page.mouse.move(cb.x+cb.width*.46,cb.y+cb.height*.31,{steps:3});await page.mouse.up();await page.waitForTimeout(300);
 const er=await page.$eval('#cutCanvas',c=>c.getContext('2d').getImageData(Math.floor(c.width*.45),Math.floor(c.height*.3),1,1).data[3]);ok(er===0,'erase brush clears pixels');
 await page.click('#cutUndo');await page.waitForTimeout(200);const un=await page.$eval('#cutCanvas',c=>c.getContext('2d').getImageData(Math.floor(c.width*.45),Math.floor(c.height*.3),1,1).data[3]);ok(un>240,'undo brings them back');
+await page.evaluate(()=>window.scrollTo(0,0));await page.mouse.move(vp.width/2,vp.height/2);await page.mouse.wheel(0,600);await page.waitForTimeout(200);
+ok(await page.evaluate(()=>scrollY===0&&getComputedStyle(document.body).overflow==='hidden'),'page behind the cut-out popup does not scroll');
 await page.screenshot({path:`cut-${vp.width}.png`});await page.click('#cutUse');await page.waitForSelector('#playerCardPhoto');await page.waitForTimeout(800);ok((await page.$eval('#cardName',e=>e.value))==='Test Guy','typed name kept after the cut-out screen');
 // drag the card preview to move the photo
 await page.click('#cardZoomIn');await page.click('#cardZoomIn');await page.click('#cardZoomIn');await page.waitForTimeout(200);const f0=await page.$eval('#cardFocusX',e=>e.value)+'/'+await page.$eval('#cardFocusY',e=>e.value);

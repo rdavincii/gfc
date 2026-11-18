@@ -364,3 +364,9 @@ html.studio-open,html.studio-open body{overflow:hidden}
 .settings-sheet{max-height:92vh}.settings-sheet[open]{display:flex;flex-direction:column}.settings-sheet .sheet-body{overflow-y:auto;min-height:0}
 .set-row>div{flex:1}.set-row .select{flex:none;width:auto;min-width:96px;max-width:44%}
 .cut-sheet .cc-chips{flex-wrap:wrap}
+
+/* popups: lock the page behind them and keep scrolling inside the sheet */
+html.modal-open,html.modal-open body{overflow:hidden;overscroll-behavior:none}
+.dialog .sheet-body{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#cutStatus{min-height:1.4em}
+#cutStatus[hidden]{display:block;visibility:hidden}

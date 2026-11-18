@@ -1,5 +1,7 @@
 # GFC Club Manager — Handoff Notes
 
+- v5.13: cut-out popup no longer scrolls the page behind it; AI refine runs at ≤900 px so phones do not freeze.
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.

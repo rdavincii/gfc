@@ -1,5 +1,5 @@
 // GFC Club Manager service worker: the app opens offline. Bump VERSION on every release.
-const VERSION = 'gfc-v5.12';
+const VERSION = 'gfc-v5.13';
 const SHELL = ['./', 'index.html', 'styles.css', 'ui.css', 'base.css', 'tokens.css', 'initial-data.js', 'psd-import.js', 'game.js', 'cards.js', 'bgremove.js', 'app.js', 'manifest.webmanifest',
   'assets/brand/gfc-logo.png', 'assets/brand/icon-192.png', 'assets/brand/icon-512.png', 'assets/brand/apple-touch-icon.png', 'assets/fonts/bebas-regular.ttf', 'assets/fonts/winner-cond.otf'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });

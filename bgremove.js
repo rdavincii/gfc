@@ -62,12 +62,18 @@
   }
   // Rough mask -> soft matte that follows the photo's real edges. img is ImageData.
   function refine(img, mask) {
-    const { width: w, height: h, data } = img, I = new Float32Array(w * h);
-    for (let i = 0; i < I.length; i++) I[i] = (0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2]) / 255;
-    const side = Math.max(w, h); let a = upsample(mask, w, h);
-    a = guided(I, a, w, h, Math.max(3, Math.round(side * 0.012)), 4e-4);
-    a = guided(I, a, w, h, Math.max(2, Math.round(side * 0.004)), 1e-4);
-    return a;
+    const { width: w, height: h, data } = img, g = Math.min(1, 900 / Math.max(w, h)), sw = Math.max(1, Math.round(w * g)), sh = Math.max(1, Math.round(h * g)), I = new Float32Array(sw * sh);
+    // work at <=900px so phones don't run out of memory; the matte is stretched back up at the end
+    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) { const j = (Math.min(h - 1, Math.floor(y / g)) * w + Math.min(w - 1, Math.floor(x / g))) * 4; I[y * sw + x] = (0.299 * data[j] + 0.587 * data[j + 1] + 0.114 * data[j + 2]) / 255; }
+    const side = Math.max(sw, sh); let a = upsample(mask, sw, sh);
+    a = guided(I, a, sw, sh, Math.max(3, Math.round(side * 0.012)), 4e-4);
+    a = guided(I, a, sw, sh, Math.max(2, Math.round(side * 0.004)), 1e-4);
+    if (g === 1) return a;
+    const o = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) { const fy = Math.min(sh - 1.001, Math.max(0, (y + .5) * g - .5)), y0 = Math.floor(fy), ty = fy - y0;
+      for (let x = 0; x < w; x++) { const fx = Math.min(sw - 1.001, Math.max(0, (x + .5) * g - .5)), x0 = Math.floor(fx), tx = fx - x0, k = y0 * sw + x0;
+        o[y * w + x] = (a[k] * (1 - tx) + a[k + 1] * tx) * (1 - ty) + (a[k + sw] * (1 - tx) + a[k + sw + 1] * tx) * ty; } }
+    return o;
   }
   // Keep only the biggest person-shaped blob (drops runners and bystanders behind the player).
   function keepMain(a, w, h) {
