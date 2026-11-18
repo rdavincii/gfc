@@ -1,7 +1,8 @@
 // Background removal that runs on the device (no upload). A small U2-Net model finds the person,
 // a guided filter then snaps that rough mask to the real edges of the photo at full resolution.
 (function () {
-  const BASE = 'vendor/bgremove/', N = 320;
+  const BASE = 'vendor/bgremove/', N = 320, MODELS = ['silueta.onnx', 'u2netp.onnx'];
+  let worker = null;
   let sessionP = null;
   const loadScript = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Could not load the cut-out engine.')); document.head.appendChild(s); });
   async function readAll(res, onProgress) {
@@ -16,21 +17,33 @@
       if (!window.ort) await loadScript(BASE + 'ort.min.js');
       ort.env.wasm.wasmPaths = new URL(BASE, document.baseURI).href; ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
       let bytes = null;
-      for (const name of ['silueta.onnx', 'u2netp.onnx']) { try { const r = await fetch(BASE + name); if (r.ok) { bytes = await readAll(r, onProgress); break; } } catch { /* try the next model */ } }
+      for (const name of MODELS) { try { const r = await fetch(BASE + name); if (r.ok) { bytes = await readAll(r, onProgress); break; } } catch { /* try the next model */ } }
       if (!bytes) throw new Error('The cut-out model is not available. Check your connection and try again.');
       return ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
     })().catch(e => { sessionP = null; throw e; });
     return sessionP;
   }
   // Rough person mask, N x N, values 0..1.
+  // Inference runs in a worker (the model load and run would otherwise freeze the page); falls back to the page if no worker.
+  function runInWorker(f, onProgress) {
+    return new Promise((ok, no) => {
+      if (!worker) worker = new Worker(new URL('bgworker.js', document.baseURI).href);
+      const w = worker;
+      w.onmessage = ({ data }) => { if (data.type === 'progress') onProgress && onProgress(data.p); else { w.onmessage = w.onerror = null; data.type === 'result' ? ok(data.m) : no(new Error(data.message)); } };
+      w.onerror = e => { w.onmessage = w.onerror = null; worker = null; w.terminate(); no(new Error('worker')); };
+      w.postMessage({ base: new URL(BASE, document.baseURI).href, models: MODELS, n: N, f }, [f.buffer]);
+    });
+  }
   async function predict(source, onProgress) {
-    const s = await session(onProgress), c = document.createElement('canvas'); c.width = c.height = N;
+    const c = document.createElement('canvas'); c.width = c.height = N;
     const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(source, 0, 0, N, N);
     const px = x.getImageData(0, 0, N, N).data, f = new Float32Array(3 * N * N), mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
     let mx = 1; for (let i = 0; i < N * N; i++) mx = Math.max(mx, px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
     for (let i = 0; i < N * N; i++) for (let k = 0; k < 3; k++) f[k * N * N + i] = (px[i * 4 + k] / mx - mean[k]) / std[k];
-    const out = await s.run({ [s.inputNames[0]]: new ort.Tensor('float32', f, [1, 3, N, N]) });
-    const m = Float32Array.from(out[s.outputNames[0]].data.slice(0, N * N)); let lo = Infinity, hi = -Infinity;
+    let m;
+    try { m = typeof Worker === 'function' ? await runInWorker(f.slice(), onProgress) : null; } catch (e) { m = null; }
+    if (!m) { const s = await session(onProgress), out = await s.run({ [s.inputNames[0]]: new ort.Tensor('float32', f, [1, 3, N, N]) }); m = Float32Array.from(out[s.outputNames[0]].data.slice(0, N * N)); }
+    let lo = Infinity, hi = -Infinity;
     for (const v of m) { if (v < lo) lo = v; if (v > hi) hi = v; }
     for (let i = 0; i < m.length; i++) m[i] = (m[i] - lo) / (hi - lo || 1);
     return m;

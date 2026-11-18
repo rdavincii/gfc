@@ -32,5 +32,12 @@ ok(!(await page.$eval('#cardZoom',e=>e.closest('label').offsetParent!==null)),'o
 await page.click('#modal [type="submit"]');await page.waitForTimeout(1500);
 const d=await idb(page);const p=d.squad.find(x=>x.name==='TEST GUY');
 ok(p&&p.photo.startsWith('data:image/png'),'new player saved with the transparent PNG');
+ok(!!p.photoOrig,'original upload kept so it can be edited again');
+await page.evaluate(id=>document.querySelector(`[data-action="edit-player-${id}"]`)?.click(),p.id);await page.waitForSelector('#cardEditCut');
+await page.click('#cardEditCut');await page.waitForSelector('#cutCanvas');
+await page.waitForFunction(()=>document.querySelector('#cutStatus').hidden,null,{timeout:120000});
+ok(await page.$eval('[data-cut-mode="ai"]',e=>e.classList.contains('is-active')),'Edit photo reopens the cut-out on the original upload');
+await page.click('#cutUse');await page.waitForSelector('#cardEditCut');
+
 await ctx.close();}
 console.log('errors',errors,'fails',fails);await b.close();})();

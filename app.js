@@ -655,7 +655,7 @@
   }
 
   // ===== Settings (gear, top right): data, fonts, export size, theme, calendar, reset =====
-  const APP_VERSION='5.13';
+  const APP_VERSION='5.14';
   async function settingsSheet(){
     let usage='';try{const e=await navigator.storage?.estimate?.();if(e?.usage)usage=` · about ${(e.usage/1048576).toFixed(1)} MB used in this browser`;}catch{}
     const row=(t,d,b)=>`<div class="set-row"><div><b>${t}</b><small>${d}</small></div>${b}</div>`,B=(id,l,c='button-secondary')=>`<button type="button" class="button ${c} button-small" id="${id}">${l}</button>`;
@@ -763,7 +763,7 @@ ${opts.frame?`<label class="cc-check"><input type="checkbox" id="cutFrame"> Extr
       cv.onpointermove=e=>{if(!down)return;const p=at(e);line(down,p);down=p;if(!raf)raf=requestAnimationFrame(()=>{raf=0;paint();});};
       cv.onpointerup=cv.onpointercancel=()=>{down=null;};
       $('#cutCancel',modal).onclick=()=>finish(null);
-      $('#cutUse',modal).onclick=()=>{if(aiBusy)return toast('Still working on the cut-out…');paint();const d=ctx.getImageData(0,0,W,H).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),clear,extracted:wantFrame()});};
+      $('#cutUse',modal).onclick=()=>{if(aiBusy)return toast('Still working on the cut-out…');paint();const d=ctx.getImageData(0,0,W,H).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),orig:src,clear,extracted:wantFrame()});};
       modal.oncancel=()=>finish(null);modal.addEventListener('close',()=>finish(null),{once:true});
     });
   }
@@ -1343,11 +1343,11 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     }catch{toast(location.protocol==='file:'?'Export is blocked on a file:// address. Start the local server from the README and open http://localhost:4173.':'The card could not be exported. Try again.');}
   }
   function cardEditor(p={},pre={}){
-    const selectedTemplate=p.templateId&&p.templateId!=='gfc-original'&&data.cardTemplates.some(t=>t.id===p.templateId)?p.templateId:data.activeCardTemplateId;let photoData=pre.photoData||'',cropTouched=!!pre.touched;
+    const selectedTemplate=p.templateId&&p.templateId!=='gfc-original'&&data.cardTemplates.some(t=>t.id===p.templateId)?p.templateId:data.activeCardTemplateId;let photoData=pre.photoData||'',photoOrig=pre.photoOrig??p.photoOrig??'',cropTouched=!!pre.touched;
     const photoLayer=t=>t?.layers.find(l=>l.type==='photo')||{};
     const range=(id,label,val,min,max)=>`<label class="field"><span class="field-label">${label} · <b id="${id}Value">${val}</b></span><input class="input range-input" type="range" id="${id}" min="${min}" max="${max}" value="${val}"></label>`;
     const t0=data.cardTemplates.find(t=>t.id===selectedTemplate)||data.cardTemplates[0],crop=p.crop||{};
-    const body=`${field('Player name','cardName',p.name||'','text','maxlength="40" required')}${field('Shirt number','cardNumber',p.number||'')}${`<label class="field"><span class="field-label">Position</span><select class="select" name="cardPosition">${['GK','CB','LB','RB','CDM','CM','CAM','LW','RW','ST'].map(x=>`<option ${x===(p.position||'ST')?'selected':''}>${x}</option>`).join('')}</select></label>`}${field('Rating (optional)','cardRating',p.rating??'','number','min="1" max="99"')}${`<label class="field"><span class="field-label">Card template</span><select class="select" id="playerCardTemplate" name="templateId">${data.cardTemplates.map(t=>`<option value="${safe(t.id)}" ${t.id===selectedTemplate?'selected':''}>${safe(t.name)}</option>`).join('')}</select></label>`}${`<label class="field field-span-2"><span class="field-label">Player portrait</span><input class="input" id="playerCardPhoto" type="file" accept="image/*"><span class="field-help">A transparent PNG cut-out works best. The template controls the frame; the sliders below adjust this player’s crop.</span></label>`}${range('cardZoom','Photo zoom %',crop.zoom??photoLayer(t0).zoom??100,100,300)}${range('cardFocusX','Photo left / right',crop.x??photoLayer(t0).focusX??50,0,100)}${range('cardFocusY','Photo up / down',crop.y??photoLayer(t0).focusY??43,0,100)}${`<div class="card-template-preview field-span-2"><p class="field-label">Live card preview</p><canvas id="playerCardPreview" width="${PREVIEW_W}" height="${PREVIEW_H}"></canvas></div>`}`;
+    const body=`${field('Player name','cardName',p.name||'','text','maxlength="40" required')}${field('Shirt number','cardNumber',p.number||'')}${`<label class="field"><span class="field-label">Position</span><select class="select" name="cardPosition">${['GK','CB','LB','RB','CDM','CM','CAM','LW','RW','ST'].map(x=>`<option ${x===(p.position||'ST')?'selected':''}>${x}</option>`).join('')}</select></label>`}${field('Rating (optional)','cardRating',p.rating??'','number','min="1" max="99"')}${`<label class="field"><span class="field-label">Card template</span><select class="select" id="playerCardTemplate" name="templateId">${data.cardTemplates.map(t=>`<option value="${safe(t.id)}" ${t.id===selectedTemplate?'selected':''}>${safe(t.name)}</option>`).join('')}</select></label>`}${`<label class="field field-span-2"><span class="field-label">Player portrait</span><input class="input" id="playerCardPhoto" type="file" accept="image/*">${(p.photo||pre.photoData)?`<button class="button button-quiet" type="button" id="cardEditCut">✂️ Edit this photo again (cut-out, brush)</button>`:''}<span class="field-help">A transparent PNG cut-out works best. The template controls the frame; the sliders below adjust this player’s crop.</span></label>`}${range('cardZoom','Photo zoom %',crop.zoom??photoLayer(t0).zoom??100,100,300)}${range('cardFocusX','Photo left / right',crop.x??photoLayer(t0).focusX??50,0,100)}${range('cardFocusY','Photo up / down',crop.y??photoLayer(t0).focusY??43,0,100)}${`<div class="card-template-preview field-span-2"><p class="field-label">Live card preview</p><canvas id="playerCardPreview" width="${PREVIEW_W}" height="${PREVIEW_H}"></canvas></div>`}`;
     openModal(p.id?'Edit player card':'Create player card',body,'Save player card');
     const form=$('.dialog-form',modal),canvas=$('#playerCardPreview'),currentPhoto=p.photo||'assets/brand/gfc-logo.png';
     const currentCrop=()=>cropTouched||p.crop?{zoom:Number($('#cardZoom').value),x:Number($('#cardFocusX').value),y:Number($('#cardFocusY').value)}:undefined;
@@ -1355,12 +1355,14 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     $$('#modal input,#modal select').forEach(el=>el.addEventListener('input',draw));
     $('#playerCardTemplate').addEventListener('change',()=>{if(cropTouched||p.crop)return draw();const l=photoLayer(data.cardTemplates.find(t=>t.id===$('#playerCardTemplate').value));[['cardZoom',l.zoom??100],['cardFocusX',l.focusX??50],['cardFocusY',l.focusY??43]].forEach(([id,v])=>{$('#'+id).value=v;$('#'+id+'Value').textContent=v;});draw();});
     ['cardZoom','cardFocusX','cardFocusY'].forEach(id=>$('#'+id).addEventListener('input',()=>{cropTouched=true;$('#'+id+'Value').textContent=$('#'+id).value;}));
-    $('#playerCardPhoto').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{let r=await importPicture(file,1400,true);
-      // the cut-out screen uses the same dialog, so keep what was typed and reopen the form afterwards
-      const draft={...p,name:$('#cardName').value,number:$('#cardNumber').value,position:$('[name="cardPosition"]',form).value,rating:$('#cardRating').value===''?null:Number($('#cardRating').value),templateId:$('#playerCardTemplate').value,crop:currentCrop()},keep={photoData,touched:cropTouched};
-      const cut=await cutoutDialog(r.src,{photo:true});
+    // one path for "new upload" and "edit again": the cut-out screen shares the dialog, so keep what was typed and reopen the form afterwards
+    const recut=async(src,orig)=>{
+      const draft={...p,name:$('#cardName').value,number:$('#cardNumber').value,position:$('[name="cardPosition"]',form).value,rating:$('#cardRating').value===''?null:Number($('#cardRating').value),templateId:$('#playerCardTemplate').value,crop:currentCrop()},keep={photoData,photoOrig,touched:cropTouched};
+      const cut=await cutoutDialog(src,{photo:true});
       if(!cut){cardEditor(draft,keep);return;}
-      cardEditor({...draft,crop:undefined},{photoData:cut.src,touched:false});}catch(error){e.target.value='';toast(error.message);}});
+      cardEditor({...draft,crop:undefined},{photoData:cut.src,photoOrig:orig||cut.orig,touched:false});};
+    $('#playerCardPhoto').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const r=await importPicture(file,1400,true);await recut(r.src,r.src);}catch(error){e.target.value='';toast(error.message);}});
+    $('#cardEditCut')?.addEventListener('click',()=>recut(photoOrig||photoData||currentPhoto,photoOrig).catch(err=>toast(err.message)));
     const resetCropToTemplate=()=>{const l=photoLayer(data.cardTemplates.find(t=>t.id===$('#playerCardTemplate').value));[['cardZoom',l.zoom??100],['cardFocusX',l.focusX??50],['cardFocusY',l.focusY??43]].forEach(([id,v])=>{$('#'+id).value=v;$('#'+id+'Value').textContent=v;});};
     // Phonto-style: drag the card to move the photo, pinch / wheel / buttons to zoom. The old sliders stay as hidden values.
     ['cardZoom','cardFocusX','cardFocusY'].forEach(id=>{$('#'+id).closest('label').style.display='none';});
@@ -1385,7 +1387,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
       e.preventDefault();const f=new FormData(form),name=String(f.get('cardName')).trim().toUpperCase();
       if(!name)return toast('Enter a player name.');
       if(!photoData&&!p.id)return toast('Choose a player portrait to build this card.');
-      const templateId=f.get('templateId'),obj={...p,id:p.id||uid(),name,number:f.get('cardNumber'),position:f.get('cardPosition'),rating:f.get('cardRating')===''?null:Number(f.get('cardRating')),photo:photoData||currentPhoto,templateId,card:'',crop:currentCrop()};
+      const templateId=f.get('templateId'),obj={...p,id:p.id||uid(),name,number:f.get('cardNumber'),position:f.get('cardPosition'),rating:f.get('cardRating')===''?null:Number(f.get('cardRating')),photo:photoData||currentPhoto,photoOrig:photoOrig||undefined,templateId,card:'',crop:currentCrop()};
       if(!obj.crop)delete obj.crop;
       const previous={squad:data.squad,active:data.activeCardTemplateId},i=data.squad.findIndex(x=>x.id===obj.id);
       data.squad=i>=0?data.squad.map(x=>x.id===obj.id?obj:x):[...data.squad,obj];data.activeCardTemplateId=templateId;
