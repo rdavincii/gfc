@@ -117,5 +117,8 @@ Squad → **Face outline** on each player opens a dialog: drag the circle onto t
 - **Card exports** (single card, all cards, sheet) now use the same 1×/2×/3× size as posters and are redrawn at that size. The player-photo cache no longer caps at 700 px, so big exports stay sharp. Files get `@2x`/`@3x`. Photos added in the studio are kept at up to 1400 px; older low-resolution photos are still limited by their own size.
 - Tests: `tests/settings-ui.test.js`.
 
+## v5.11 · Installable app (PWA)
+`manifest.webmanifest` + icons (`assets/brand/icon-*.png`, maskable, apple-touch) + `sw.js` make the app installable and fully usable offline after the first visit. Needs https or localhost (GitHub Pages works). **iPhone:** Safari → Share → Add to Home Screen. **Android/desktop Chrome:** Settings (gear) → Install, or the browser's Install app. Code files refresh in the background (new version on the next open, with a toast); pictures are cached the first time they are shown. **On every release bump `VERSION` in `sw.js`**, or installed copies keep the old files. The private Claude preview link cannot be installed (it runs in a sandbox); use the GitHub Pages address. Test: `tests/pwa.test.js`.
+
 ## Phone link (GitHub Pages)
 Repo → Settings → Pages → Build and deployment → Source "Deploy from a branch" → branch `main`, folder `/ (root)` → Save. The app is then at `https://rdavincii.github.io/gfc/`. Data stays on each device (browser storage), so use the in-app backup to move it.

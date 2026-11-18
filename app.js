@@ -95,10 +95,20 @@
     const el=$('#storageNote');if(!el||!navigator.storage?.estimate)return;
     try{const {usage,quota}=await navigator.storage.estimate(),mb=n=>(n/1048576).toFixed(n<10485760?1:0);el.textContent=`Browser storage: ${mb(usage)} MB used${quota?` of about ${mb(quota)} MB available`:''}. Imported artwork lives in this browser's database, so export a backup before clearing site data.`;}catch{}
   }
+  // ---- Installable app (PWA): offline shell + install button ----
+  let installEvent=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvent=e;});window.addEventListener('appinstalled',()=>{installEvent=null;toast('GFC is installed.');});
+  const isInstalled=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  function registerWorker(){
+    if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol))return;
+    try{const had=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)toast('Updated. Reopen the app to use the newest version.');});}catch{}
+  }
   async function boot(){
     const {raw,migrate}=await loadStored();
     data=normalize(raw);await ensureFonts();if(!data.progress.days.includes(today()))data.progress.days.push(today());G.ACHIEVEMENTS.filter(a=>!data.progress.unlocked[a.id]&&a.test(data)).forEach(a=>{data.progress.unlocked[a.id]=today();});persistSoon();
     try{navigator.storage?.persist?.();}catch{}
+    registerWorker();
     setPage('overview');
     if(migrate)persist('Moved to browser database');
     if(location.protocol==='file:')toast('Open the app through the local server (see README). From a file:// address, card previews and PNG export are blocked by the browser.');
@@ -639,7 +649,7 @@
   }
 
   // ===== Settings (gear, top right): data, fonts, export size, theme, calendar, reset =====
-  const APP_VERSION='5.10';
+  const APP_VERSION='5.11';
   async function settingsSheet(){
     let usage='';try{const e=await navigator.storage?.estimate?.();if(e?.usage)usage=` · about ${(e.usage/1048576).toFixed(1)} MB used in this browser`;}catch{}
     const row=(t,d,b)=>`<div class="set-row"><div><b>${t}</b><small>${d}</small></div>${b}</div>`,B=(id,l,c='button-secondary')=>`<button type="button" class="button ${c} button-small" id="${id}">${l}</button>`;
@@ -652,6 +662,8 @@ ${row('Storage',`${data.squad.length} players, ${data.matches.length} matches, $
 ${row('Fonts','Add your own fonts for posters and cards.',B('setFonts','Manage fonts'))}
 ${row('Export size','Posters and cards are redrawn at this size, so they stay sharp. 3× is the biggest.',`<select class="select" id="setScale">${[1,2,3].map(n=>`<option value="${n}" ${(data.settings.exportScale||1)===n?'selected':''}>${n}×</option>`).join('')}</select>`)}
 ${row('Pitch style','Colours of the Tactics board.',`<select class="select" id="setPitch">${Object.entries(PITCH_THEMES).map(([k,l])=>`<option value="${k}" ${data.settings.pitchTheme===k?'selected':''}>${l}</option>`).join('')}</select>`)}
+<p class="eyebrow">APP</p>
+${row('Install app',isInstalled()?'GFC is installed on this device and works offline.':installEvent?'Add GFC to your home screen. It opens full screen and works offline.':'On iPhone: tap Share, then Add to Home Screen. On Android or desktop Chrome: browser menu, Install app.',installEvent&&!isInstalled()?B('setInstall','Install','button-primary'):'')}
 <p class="eyebrow">MORE</p>
 ${row('Instagram calendar','Download planned posts as a calendar file.',B('setIcs','Export calendar'))}
 ${row('Start again','Erase everything in this browser and go back to the starting squad. Save a backup first.',B('setReset','Erase data','button-quiet'))}
@@ -661,6 +673,7 @@ ${row('Start again','Erase everything in this browser and go back to the startin
     $('#setFonts').onclick=()=>{modal.close();fontManager();};
     $('#setScale').onchange=e=>{data.settings.exportScale=+e.target.value;persist();toast(`Exports will be ${e.target.value}×.`);};
     $('#setPitch').onchange=e=>{data.settings.pitchTheme=e.target.value;persist();if(page==='formation')setPage('formation');};
+    $('#setInstall')&&($('#setInstall').onclick=async()=>{const e=installEvent;installEvent=null;if(e){e.prompt();await e.userChoice.catch(()=>{});}modal.close();});
     $('#setIcs').onclick=()=>exportICS();
     $('#setReset').onclick=async()=>{if(!confirm('Erase everything in this browser (players, matches, cards, templates, posters, fonts) and start again? This cannot be undone. Save a backup first if you may need it.'))return;if(!confirm('Really erase all data?'))return;const previous=data;data=normalize({});if(!await persist()){data=previous;return;}modal.close();setPage('overview');toast('Data erased. Starting fresh.');};
   }
