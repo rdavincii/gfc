@@ -6,6 +6,8 @@
 
 - v5.15: opponent logo per fixture (Add/Edit fixture): same cut-out tools, original kept (oppLogoOrig), shown in fixture list, matchday sheet and every poster as draggable "Opponent crest".
 
+- v5.16: per-match attendance (match.attendance = ticked player ids; unset = everyone). Tactics bench, auto-fill and matchday substitutes only use ticked players; unticking removes them from that match's pitch.
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.

@@ -372,3 +372,6 @@ html.modal-open,html.modal-open body{overflow:hidden;overscroll-behavior:none}
 #cutStatus[hidden]{display:block;visibility:hidden}
 .opp-mark.opp-img{object-fit:contain;background:transparent;border:0;border-radius:0}
 .opp-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.att-sheet{max-height:92vh}.att-sheet[open]{display:flex;flex-direction:column}.att-sheet .sheet-body{overflow-y:auto;min-height:0}
+.att-list{display:grid;gap:2px;margin:8px 0}.att-row{justify-content:flex-start;border-bottom:1px solid rgba(255,255,255,.06)}.att-row span{flex:1}.att-row small{opacity:.7}
+.match-bar>.button{margin-top:10px}
