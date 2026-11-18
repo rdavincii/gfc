@@ -4,6 +4,8 @@
 
 - v5.14: AI model now runs in a Web Worker (bgworker.js) so the screen no longer freezes; players keep their original upload (photoOrig) and "Edit this photo again" reopens the cut-out.
 
+- v5.15: opponent logo per fixture (Add/Edit fixture): same cut-out tools, original kept (oppLogoOrig), shown in fixture list, matchday sheet and every poster as draggable "Opponent crest".
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.

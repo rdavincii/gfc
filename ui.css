@@ -370,3 +370,5 @@ html.modal-open,html.modal-open body{overflow:hidden;overscroll-behavior:none}
 .dialog .sheet-body{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 #cutStatus{min-height:1.4em}
 #cutStatus[hidden]{display:block;visibility:hidden}
+.opp-mark.opp-img{object-fit:contain;background:transparent;border:0;border-radius:0}
+.opp-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
