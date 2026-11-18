@@ -74,3 +74,7 @@ See README v5.7. cards.js paintDesign positions the photo from design.face and p
 
 ## v5.11 update: PWA
 See README v5.11. Bump `VERSION` in sw.js each release; add new top-level files to SHELL there.
+
+
+## v5.12 update: AI cut-out
+bgremove.js (GFC_BG) wraps vendor/bgremove ONNX model + guided-filter refinement; cutoutDialog in app.js has the AI mode and brush. cardEditor reopens itself after the cut-out screen because both share the one modal dialog.

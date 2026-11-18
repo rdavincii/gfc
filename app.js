@@ -29,7 +29,7 @@
     d.squad=d.squad.map(p=>{const original=initialSquad.find(q=>q.id===p.id);let templateId=p.templateId||(String(p.card||'').startsWith('assets/cards/')?'gfc-original':'gfc-classic');if(!known(templateId)||(templateId==='gfc-original'&&!original?.card&&!p.card))templateId='gfc-classic';return {...original,...p,templateId,card:templateId==='gfc-original'?(original?.card||p.card||''):(p.card||'')};});
     d.squad.forEach(p=>{const f=p.face,ok=f&&typeof f==='object'&&[f.x,f.y,f.s].every(v=>Number.isFinite(+v)&&v!==null);if(ok)p.face={x:Math.min(1,Math.max(0,+f.x)),y:Math.min(1,Math.max(0,+f.y)),s:Math.min(.95,Math.max(.05,+f.s))};else delete p.face;});
     d.packs={};for(const m of d.matches){const r=raw.packs?.[m.id];if(!r||typeof r!=='object')continue;const D=PACK_DEFAULT,n=(k,lo,hi)=>cl(r[k]??D[k],lo,hi);
-      d.packs[m.id]={bg:typeof r.bg==='string'&&r.bg.startsWith('data:image/')?r.bg:'',fx:n('fx',0,100),fy:n('fy',0,100),tint:n('tint',0,1),shade:n('shade',0,.8),vignette:n('vignette',0,.9),grain:n('grain',0,1),primary:/^#[0-9a-f]{6}$/i.test(r.primary)?r.primary:D.primary,font:typeof r.font==='string'?r.font:'',format:r.format==='story'?'story':'feed',pitch:PITCHES.some(q=>q[0]===r.pitch)?r.pitch:'classic',cardStyle:r.cardStyle==='match'||(Array.isArray(raw.cardStyles)&&raw.cardStyles.some(x=>x&&x.id===r.cardStyle))||(Array.isArray(raw.cardDesigns)&&raw.cardDesigns.some(x=>x&&`design:${x.id}`===r.cardStyle))?r.cardStyle:'',layouts:r.layouts&&typeof r.layouts==='object'?r.layouts:{}};}
+      d.packs[m.id]={bg:typeof r.bg==='string'&&r.bg.startsWith('data:image/')?r.bg:'',fx:n('fx',0,100),fy:n('fy',0,100),bgZoom:n('bgZoom',100,300),tint:n('tint',0,1),shade:n('shade',0,.8),vignette:n('vignette',0,.9),grain:n('grain',0,1),primary:/^#[0-9a-f]{6}$/i.test(r.primary)?r.primary:D.primary,font:typeof r.font==='string'?r.font:'',format:r.format==='story'?'story':'feed',pitch:PITCHES.some(q=>q[0]===r.pitch)?r.pitch:'classic',cardStyle:r.cardStyle==='match'||(Array.isArray(raw.cardStyles)&&raw.cardStyles.some(x=>x&&x.id===r.cardStyle))||(Array.isArray(raw.cardDesigns)&&raw.cardDesigns.some(x=>x&&`design:${x.id}`===r.cardStyle))?r.cardStyle:'',layouts:r.layouts&&typeof r.layouts==='object'?r.layouts:{}};}
     d.fonts=Array.isArray(raw.fonts)?raw.fonts.filter(x=>x&&x.name&&x.src).map(x=>({name:x.name,src:x.src})):[];
     d.cardTemplates.forEach(t=>{if(Array.isArray(t.fonts)){t.fonts.forEach(x=>{if(x&&x.name&&x.src&&!d.fonts.some(y=>y.name===x.name))d.fonts.push({name:x.name,src:x.src});});delete t.fonts;}});
     const cleanEd=s=>{const o={};if(!s||typeof s!=='object')return o;if(GC.PRESETS.some(q=>q.id===s.preset))o.preset=s.preset;if(GC.PATTERNS.some(q=>q[0]===s.pattern))o.pattern=s.pattern;if(GC.SHAPES.some(q=>q[0]===s.shape))o.shape=s.shape;if(s.frameTop===true)o.frameTop=true;for(const k of ['shapeImg','bg','frame'])if(typeof s[k]==='string'&&s[k].startsWith('data:image/'))o[k]=s[k];for(const k of ['c1','c2','accent','ink'])if(/^#[0-9a-f]{6}$/i.test(s[k]))o[k]=s[k];if(typeof s.label==='string')o.label=s.label.slice(0,18);if(s.stats===false)o.stats=false;if(typeof s.designId==='string'&&s.designId.length<=40)o.designId=s.designId;if(s.shine===false)o.shine=false;if(typeof s.font==='string'&&(d.fonts.some(f=>f.name===s.font)||['Winner GFC','Bebas GFC','Arial'].includes(s.font)))o.font=s.font;return o;};
@@ -508,7 +508,7 @@
   const PITCHES=[['classic','Classic'],['rect','Rectangle'],['rounded','Rounded'],['arch','Arch'],['perspective','Perspective'],['none','No outline']];
   const sizeSelect=id=>`<label class="export-scale"><span>Size</span><select class="select" id="${id}">${[1,2,3].map(n=>`<option value="${n}" ${(data.settings.exportScale||1)===n?'selected':''}>${n}×</option>`).join('')}</select></label>`;
   const PACK_W=1080,MAX_PX=16000000,PACK_KINDS=[['next','Next match'],['matchday','Matchday'],['score','Full time'],['lineupA','Line-up A'],['lineupB','Line-up B'],['rosterA','Squad list A'],['rosterB','Squad list B']];
-  const PACK_DEFAULT={bg:'',fx:50,fy:45,tint:.55,shade:.3,vignette:.55,grain:.4,primary:'#ed1c24',font:'',format:'feed',pitch:'classic',cardStyle:'',layouts:{}};
+  const PACK_DEFAULT={bg:'',fx:50,fy:45,bgZoom:100,tint:.55,shade:.3,vignette:.55,grain:.4,primary:'#ed1c24',font:'',format:'feed',pitch:'classic',cardStyle:'',layouts:{}};
   const packUi={matchId:'',kind:'next',selected:'',boxes:{}};
   let packPaint=Promise.resolve(),packToken=0;
   const cl=(v,lo,hi)=>Math.min(hi,Math.max(lo,Number.isFinite(+v)?+v:lo));
@@ -540,7 +540,7 @@
     if(token!==packToken)return;
     canvas.width=Math.round(W*scale);canvas.height=Math.round(H*scale);canvas.style.aspectRatio=`${W} / ${H}`;
     const ctx=canvas.getContext('2d'),red=pack.primary;ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.fillStyle='#140306';ctx.fillRect(0,0,W,H);
-    if(bg){const s=Math.max(W/bg.width,H/bg.height),sw=W/s,sh=H/s;ctx.drawImage(bg,(bg.width-sw)*pack.fx/100,(bg.height-sh)*pack.fy/100,sw,sh,0,0,W,H);}
+    if(bg){const s=Math.max(W/bg.width,H/bg.height)*(pack.bgZoom||100)/100,sw=W/s,sh=H/s;ctx.drawImage(bg,(bg.width-sw)*pack.fx/100,(bg.height-sh)*pack.fy/100,sw,sh,0,0,W,H);}
     else{const g=ctx.createRadialGradient(W*.5,H*.45,W*.1,W*.5,H*.5,H*.75);g.addColorStop(0,'#b5141a');g.addColorStop(.6,'#5e0a10');g.addColorStop(1,'#140306');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
     if(bg&&pack.tint>0){ctx.globalAlpha=pack.tint;ctx.globalCompositeOperation='saturation';ctx.fillStyle='#808080';ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='multiply';ctx.fillStyle=red;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;}
     if(pack.shade>0){ctx.fillStyle=`rgba(10,2,4,${pack.shade})`;ctx.fillRect(0,0,W,H);}
@@ -589,8 +589,8 @@
     $('#packMatch').onchange=e=>{packUi.matchId=e.target.value;packUi.selected='';setPage('packs');};
     $('#packCopy').onchange=async e=>{const src=data.packs[e.target.value];if(!src)return;if(!confirm('Replace this match\'s style and text positions with the copied one?'))return;const prev=data.packs[m.id];data.packs[m.id]=JSON.parse(JSON.stringify(src));if(!await persist()){data.packs[m.id]=prev;return;}setPage('packs');toast('Style copied.');};
     $$('[data-pack-kind]').forEach(b=>b.onclick=()=>{packUi.kind=b.dataset.packKind;packUi.selected='';setPage('packs');});
-    const sliders=[['tint','Red tint on photo',0,1,.05],['shade','Darken',0,.8,.05],['vignette','Vignette',0,.9,.05],['grain','Film grain',0,1,.05],['fx','Photo position · left to right',0,100,1],['fy','Photo position · top to bottom',0,100,1]];
-    $('#packStyle').innerHTML=`<h3>Style for this match</h3><label class="field"><span class="field-label">Background (PSD, PSB, PNG, JPG)</span><input class="input" type="file" id="packBg" accept=".psd,.psb,.png,.jpg,.jpeg,.webp"></label>${pack.bg?'<button class="button button-quiet button-small" type="button" id="packBgClear">Remove background</button>':'<p class="caption">No background yet, so the default red gradient is used. A Photoshop file is flattened into one picture; layers are not kept.</p>'}<div id="packBgNote" class="caption"></div>${sliders.map(([k,l,lo,hi,st])=>`<label class="field"><span class="field-label">${l}</span><input type="range" data-pack-range="${k}" min="${lo}" max="${hi}" step="${st}" value="${pack[k]}"></label>`).join('')}<label class="field"><span class="field-label">Heading font</span><select class="select" id="packFont">${[['','Default (Winner GFC)'],...fontChoices().map(n=>[n,n])].map(([v,l])=>`<option value="${safe(v)}" ${v===pack.font?'selected':''}>${safe(l)}</option>`).join('')}</select></label><div class="pack-row"><label class="field"><span class="field-label">Accent colour</span><input class="input" type="color" id="packColor" value="${pack.primary}"></label><label class="field"><span class="field-label">Format</span><select class="select" id="packFormat"><option value="feed" ${pack.format==='feed'?'selected':''}>Feed 4:5</option><option value="story" ${pack.format==='story'?'selected':''}>Story 9:16</option></select></label></div><label class="field"><span class="field-label">Player cards on line-up posters</span><select class="select" id="packCardStyle"><option value="">Each player's own card</option><option value="match" ${pack.cardStyle==='match'?'selected':''}>This match's card style</option>${data.cardDesigns.map(s=>`<option value="design:${safe(s.id)}" ${pack.cardStyle==='design:'+s.id?'selected':''}>${safe(s.name)} (template)</option>`).join('')}${data.cardStyles.map(s=>`<option value="${safe(s.id)}" ${pack.cardStyle===s.id?'selected':''}>${safe(s.name)} (saved)</option>`).join('')}</select></label><label class="field"><span class="field-label">Pitch shape on line-up posters</span><select class="select" id="packPitch">${PITCHES.map(([k,l])=>`<option value="${k}" ${pack.pitch===k?'selected':''}>${l}</option>`).join('')}</select></label><button class="button button-quiet button-small" type="button" data-action="manage-fonts">Manage fonts</button>`;
+    const sliders=[['tint','Red tint on photo',0,1,.05],['shade','Darken',0,.8,.05],['vignette','Vignette',0,.9,.05],['grain','Film grain',0,1,.05]];
+    $('#packStyle').innerHTML=`<h3>Style for this match</h3><label class="field"><span class="field-label">Background (PSD, PSB, PNG, JPG)</span><input class="input" type="file" id="packBg" accept=".psd,.psb,.png,.jpg,.jpeg,.webp"></label>${pack.bg?'<button class="button button-quiet button-small" type="button" id="packBgClear">Remove background</button>':'<p class="caption">No background yet, so the default red gradient is used. A Photoshop file is flattened into one picture; layers are not kept.</p>'}<div id="packBgNote" class="caption"></div>${pack.bg?'<p class="caption">Drag the empty part of the poster to move the photo. Pinch (or scroll) to zoom it. Drag any text to move it.</p>':''}${sliders.map(([k,l,lo,hi,st])=>`<label class="field"><span class="field-label">${l}</span><input type="range" data-pack-range="${k}" min="${lo}" max="${hi}" step="${st}" value="${pack[k]}"></label>`).join('')}<label class="field"><span class="field-label">Heading font</span><select class="select" id="packFont">${[['','Default (Winner GFC)'],...fontChoices().map(n=>[n,n])].map(([v,l])=>`<option value="${safe(v)}" ${v===pack.font?'selected':''}>${safe(l)}</option>`).join('')}</select></label><div class="pack-row"><label class="field"><span class="field-label">Accent colour</span><input class="input" type="color" id="packColor" value="${pack.primary}"></label><label class="field"><span class="field-label">Format</span><select class="select" id="packFormat"><option value="feed" ${pack.format==='feed'?'selected':''}>Feed 4:5</option><option value="story" ${pack.format==='story'?'selected':''}>Story 9:16</option></select></label></div><label class="field"><span class="field-label">Player cards on line-up posters</span><select class="select" id="packCardStyle"><option value="">Each player's own card</option><option value="match" ${pack.cardStyle==='match'?'selected':''}>This match's card style</option>${data.cardDesigns.map(s=>`<option value="design:${safe(s.id)}" ${pack.cardStyle==='design:'+s.id?'selected':''}>${safe(s.name)} (template)</option>`).join('')}${data.cardStyles.map(s=>`<option value="${safe(s.id)}" ${pack.cardStyle===s.id?'selected':''}>${safe(s.name)} (saved)</option>`).join('')}</select></label><label class="field"><span class="field-label">Pitch shape on line-up posters</span><select class="select" id="packPitch">${PITCHES.map(([k,l])=>`<option value="${k}" ${pack.pitch===k?'selected':''}>${l}</option>`).join('')}</select></label><button class="button button-quiet button-small" type="button" data-action="manage-fonts">Manage fonts</button>`;
     $$('[data-pack-range]',$('#packStyle')).forEach(r=>r.oninput=()=>{pack[r.dataset.packRange]=Number(r.value);packRepaint();save();});
     $('#packFont').onchange=e=>{pack.font=e.target.value;packRepaint();save();};
     $('#packPitch').onchange=e=>{pack.pitch=e.target.value;packRepaint();save();};
@@ -626,17 +626,23 @@
     if(hidden.length)box.insertAdjacentHTML('beforeend',`<div class="pack-row">${hidden.map(x=>`<button class="button button-quiet button-small" type="button" data-pack-show="${x.id}">Show ${safe(x.label)}</button>`).join('')}</div>`);
     $$('[data-pack-show]',box).forEach(b=>b.onclick=()=>{delete pack.layouts[packUi.kind][b.dataset.packShow].hide;save();setPage('packs');});
     // drag on canvas
-    const canvas=$('#packCanvas');canvas.style.touchAction=packUi.selected?'none':'auto';let drag=null,raf=0;
+    const canvas=$('#packCanvas');canvas.style.touchAction=(packUi.selected||pack.bg)?'none':'auto';let drag=null,raf=0,bgDrag=null;const pts=new Map();canvas.addEventListener('wheel',e=>{if(!pack.bg)return;e.preventDefault();pack.bgZoom=cl((pack.bgZoom||100)*(e.deltaY<0?1.06:.94),100,300);packRepaint();clearTimeout(canvas._wz);canvas._wz=setTimeout(save,400);},{passive:false});
     canvas.onpointerdown=e=>{
+      pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(bgDrag&&pts.size===2){const [a,b]=[...pts.values()];bgDrag={...bgDrag,pinch:true,d0:Math.hypot(a.x-b.x,a.y-b.y)||1,z0:pack.bgZoom||100};canvas.setPointerCapture(e.pointerId);return;}
       const r=canvas.getBoundingClientRect(),px=(e.clientX-r.left)*PACK_W/r.width,py=(e.clientY-r.top)*(canvas.height/canvas.width*PACK_W)/r.height;
       const id=Object.keys(packUi.boxes).reverse().find(k=>{const b=packUi.boxes[k];return px>=b.x-10&&px<=b.x+b.w+10&&py>=b.y-10&&py<=b.y+b.h+10;});
-      if(!id){if(packUi.selected){packUi.selected='';setPage('packs');}return;}
+      if(!id){const im=pack.bg&&posterImages.get(pack.bg);if(im){bgDrag={sx:e.clientX,sy:e.clientY,fx:pack.fx,fy:pack.fy,rw:r.width,rh:r.height,im,moved:false};canvas.setPointerCapture(e.pointerId);e.preventDefault();return;}if(packUi.selected){packUi.selected='';setPage('packs');}return;}
       const el=els.find(x=>x.id===id),ov=packLayout(pack,packUi.kind,id),wasSelected=packUi.selected===id;packUi.selected=id;
       drag={id,sx:e.clientX,sy:e.clientY,ox:ov.x??el.x,oy:ov.y??el.y,rw:r.width,rh:r.height,moved:false,wasSelected};canvas.setPointerCapture(e.pointerId);e.preventDefault();
     };
-    canvas.onpointermove=e=>{if(!drag)return;const dx=(e.clientX-drag.sx)/drag.rw,dy=(e.clientY-drag.sy)/drag.rh;if(!drag.moved&&Math.hypot(dx*drag.rw,dy*drag.rh)<4)return;drag.moved=true;
+    canvas.onpointermove=e=>{if(bgDrag){pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const H=canvas.height/canvas.width*PACK_W;
+        if(bgDrag.pinch){if(pts.size<2)return;const [a,b]=[...pts.values()];pack.bgZoom=cl(bgDrag.z0*Math.hypot(a.x-b.x,a.y-b.y)/bgDrag.d0,100,300);bgDrag.moved=true;}
+        else{const dxp=e.clientX-bgDrag.sx,dyp=e.clientY-bgDrag.sy;if(!bgDrag.moved&&Math.hypot(dxp,dyp)<4)return;bgDrag.moved=true;const S=Math.max(PACK_W/bgDrag.im.width,H/bgDrag.im.height)*(pack.bgZoom||100)/100,tx=bgDrag.im.width*S-PACK_W,ty=bgDrag.im.height*S-H;
+          if(tx>1)pack.fx=cl(bgDrag.fx-dxp*PACK_W/bgDrag.rw/tx*100,0,100);if(ty>1)pack.fy=cl(bgDrag.fy-dyp*H/bgDrag.rh/ty*100,0,100);}
+        if(!raf)raf=requestAnimationFrame(()=>{raf=0;packRepaint();});return;}
+      if(!drag)return;const dx=(e.clientX-drag.sx)/drag.rw,dy=(e.clientY-drag.sy)/drag.rh;if(!drag.moved&&Math.hypot(dx*drag.rw,dy*drag.rh)<4)return;drag.moved=true;
       const o=((pack.layouts[packUi.kind]??={})[drag.id]??={});o.x=cl(drag.ox+dx,0,1);o.y=cl(drag.oy+dy,0,1);if(!raf)raf=requestAnimationFrame(()=>{raf=0;packRepaint();});};
-    canvas.onpointerup=canvas.onpointercancel=()=>{if(!drag)return;const d=drag;drag=null;if(d.moved)save();setPage('packs');};
+    canvas.onpointerup=canvas.onpointercancel=e=>{if(bgDrag){pts.delete(e.pointerId);const m=bgDrag.moved;if(!pts.size){bgDrag=null;if(m)save();else if(packUi.selected){packUi.selected='';setPage('packs');}}else if(bgDrag.pinch){bgDrag=null;save();}return;}if(!drag)return;const d=drag;drag=null;if(d.moved)save();setPage('packs');};
     packRepaint();
   }
   async function exportPack(all){
@@ -649,7 +655,7 @@
   }
 
   // ===== Settings (gear, top right): data, fonts, export size, theme, calendar, reset =====
-  const APP_VERSION='5.11';
+  const APP_VERSION='5.12';
   async function settingsSheet(){
     let usage='';try{const e=await navigator.storage?.estimate?.();if(e?.usage)usage=` · about ${(e.usage/1048576).toFixed(1)} MB used in this browser`;}catch{}
     const row=(t,d,b)=>`<div class="set-row"><div><b>${t}</b><small>${d}</small></div>${b}</div>`,B=(id,l,c='button-secondary')=>`<button type="button" class="button ${c} button-small" id="${id}">${l}</button>`;
@@ -704,22 +710,60 @@ ${row('Start again','Erase everything in this browser and go back to the startin
     return new Promise(async resolve=>{
       const im=await loadCardImage(src);if(!im)return resolve({src,clear:false});
       let done=false;const finish=v=>{if(done)return;done=true;modal.oncancel=null;if(modal.open)modal.close();resolve(v);};
-      openSheet('Make the background transparent',`<p class="caption">Pick the colour behind the picture. Light or dark areas inside the artwork are kept when "Edges only" is on.</p>
+      const ai=!opts.frame,modes=[...(ai?[['ai','✨ AI · any photo']]:[]),['none','Keep as is'],['white','Remove white'],['black','Remove black'],['auto','Match corners']];
+      let mode=ai&&opts.photo?'ai':'none';
+      openSheet('Remove the background',`<p class="caption" id="cutHelp"></p>
 <div class="cut-stage"><canvas id="cutCanvas" width="${im.naturalWidth||im.width}" height="${im.naturalHeight||im.height}"></canvas></div>
-<div class="cc-chips">${[['none','Keep as is'],['white','Remove white'],['black','Remove black'],['auto','Match corners']].map(([k,l])=>`<button type="button" class="team-tab ${k==='none'?'is-active':''}" data-cut-mode="${k}">${l}</button>`).join('')}</div>
-<label class="field"><span class="field-label">Strength <b id="cutTolV">30</b></span><input type="range" id="cutTol" min="0" max="60" value="30"></label>
-<label class="cc-check"><input type="checkbox" id="cutEdges" checked> Edges only (keep matching colours inside the artwork)</label>
+<p class="caption" id="cutStatus" hidden></p>
+<div class="cc-chips">${modes.map(([k,l])=>`<button type="button" class="team-tab ${k===mode?'is-active':''}" data-cut-mode="${k}">${l}</button>`).join('')}</div>
+<div id="cutColour"><label class="field"><span class="field-label">Strength <b id="cutTolV">30</b></span><input type="range" id="cutTol" min="0" max="60" value="30"></label>
+<label class="cc-check"><input type="checkbox" id="cutEdges" checked> Edges only (keep matching colours inside the artwork)</label></div>
+<div id="cutAi" hidden><div class="st-grid"><label class="field"><span class="field-label">Sharp edge <b id="cutSharpV">70</b></span><input type="range" id="cutSharp" min="0" max="100" value="70"></label><label class="field"><span class="field-label">Edge in/out <b id="cutEdgeV">0</b></span><input type="range" id="cutEdge" min="-50" max="50" value="0"></label></div>
+<label class="cc-check"><input type="checkbox" id="cutMain" checked> Keep only the main person</label>
+<p class="field-label">Touch up with your finger</p><div class="cc-chips">${[['off','Off'],['erase','Erase'],['restore','Restore']].map(([k,l])=>`<button type="button" class="team-tab ${k==='off'?'is-active':''}" data-cut-brush="${k}">${l}</button>`).join('')}<button type="button" class="team-tab" id="cutUndo">Undo brush</button></div>
+<label class="field"><span class="field-label">Brush size <b id="cutBrushV">4</b></span><input type="range" id="cutBrush" min="1" max="15" value="4"></label></div>
 ${opts.frame?`<label class="cc-check"><input type="checkbox" id="cutFrame"> Extract the frame only (hollow out the middle so a photo can show through)</label><label class="field"><span class="field-label">Frame thickness <b id="cutThickV">7</b>%</span><input type="range" id="cutThick" min="2" max="25" value="7"></label>`:''}
 <div class="cc-stage-actions"><button class="button button-quiet" type="button" id="cutCancel">Cancel</button><button class="button button-primary" type="button" id="cutUse">Use picture</button></div>`,'cut-sheet');
-      const cv=$('#cutCanvas',modal),ctx=cv.getContext('2d',{willReadFrequently:true});let mode='none';
-      const wantFrame=()=>!!$('#cutFrame',modal)?.checked;
-      const draw=()=>{ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(im,0,0,cv.width,cv.height);if(mode==='none'&&!wantFrame())return 0;const id=ctx.getImageData(0,0,cv.width,cv.height);if(mode!=='none')GC.removeBackground(id,{mode,tol:+$('#cutTol',modal).value,edgesOnly:$('#cutEdges',modal).checked});if(wantFrame())GC.extractFrame(id,{thickness:+$('#cutThick',modal).value});ctx.putImageData(id,0,0);return 1;};
-      let t0;const soon=()=>{clearTimeout(t0);t0=setTimeout(draw,60);};draw();
-      $$('[data-cut-mode]',modal).forEach(b=>b.onclick=()=>{mode=b.dataset.cutMode;$$('[data-cut-mode]',modal).forEach(x=>x.classList.toggle('is-active',x===b));draw();});
+      const cv=$('#cutCanvas',modal),ctx=cv.getContext('2d',{willReadFrequently:true}),W=cv.width,H=cv.height,status=t=>{const e=$('#cutStatus',modal);e.hidden=!t;e.textContent=t||'';};
+      ctx.drawImage(im,0,0,W,H);const orig=ctx.getImageData(0,0,W,H),srcC=document.createElement('canvas');srcC.width=W;srcC.height=H;srcC.getContext('2d').putImageData(orig,0,0);
+      let aiState=null,aiBusy=false,ov=null,brush='off',ovStack=[],base=null,raf=0;
+      const wantFrame=()=>!!$('#cutFrame',modal)?.checked,hasOv=()=>!!ov;
+      const help=()=>{$('#cutHelp',modal).textContent=mode==='ai'?'The cut-out is made on your phone, nothing is uploaded. Use Sharp edge to harden the outline, Edge to trim or grow it, and paint with your finger to fix any spot.':'Pick the colour behind the picture. Light or dark areas inside the artwork are kept when "Edges only" is on.';$('#cutAi',modal).hidden=mode!=='ai';$('#cutColour',modal).hidden=mode==='ai'||mode==='none';};
+      const aiAlpha=()=>{const a=$('#cutMain',modal).checked?aiState.main:aiState.full;return GFC_BG.curve(a,+$('#cutSharp',modal).value,+$('#cutEdge',modal).value);};
+      const paint=()=>{
+        if(mode==='ai'){if(!aiState){ctx.putImageData(orig,0,0);return;}if(!base)base=aiAlpha();const id=new ImageData(new Uint8ClampedArray(orig.data),W,H),d=id.data;for(let i=0;i<base.length;i++){const o=ov?ov[i]:0;d[i*4+3]=o===1?255:o===2?0:base[i];}ctx.putImageData(id,0,0);return;}
+        ctx.clearRect(0,0,W,H);ctx.drawImage(im,0,0,W,H);if(mode==='none'&&!wantFrame()&&!hasOv())return;const id=ctx.getImageData(0,0,W,H);
+        if(mode!=='none')GC.removeBackground(id,{mode,tol:+$('#cutTol',modal).value,edgesOnly:$('#cutEdges',modal).checked});if(wantFrame())GC.extractFrame(id,{thickness:+$('#cutThick',modal).value});
+        if(ov){const d=id.data;for(let i=0;i<ov.length;i++){if(ov[i]===2)d[i*4+3]=0;else if(ov[i]===1)d[i*4+3]=255;}}ctx.putImageData(id,0,0);
+      };
+      const draw=()=>{if(mode==='ai')base=null;paint();};
+      const runAi=async()=>{
+        if(aiState||aiBusy)return;aiBusy=true;
+        try{status('Loading the cut-out model… (first time only, about 45 MB)');
+          const m=await GFC_BG.predict(srcC,p=>status(`Loading the cut-out model… ${Math.round(p*100)}%`));
+          status('Finding the player…');await new Promise(r=>setTimeout(r,30));
+          const full=GFC_BG.refine(orig,m);status('Cleaning the edges…');await new Promise(r=>setTimeout(r,30));
+          aiState={full,main:GFC_BG.keepMain(full,W,H)};status('');draw();
+        }catch(e){status('');toast(e.message||'The AI cut-out could not run on this device. Try Remove white or Match corners.');mode='none';$$('[data-cut-mode]',modal).forEach(x=>x.classList.toggle('is-active',x.dataset.cutMode==='none'));help();draw();}
+        aiBusy=false;
+      };
+      let t0;const soon=()=>{clearTimeout(t0);t0=setTimeout(draw,60);};
+      help();if(mode==='ai')runAi();
+      $$('[data-cut-mode]',modal).forEach(b=>b.onclick=()=>{mode=b.dataset.cutMode;$$('[data-cut-mode]',modal).forEach(x=>x.classList.toggle('is-active',x===b));help();if(mode==='ai'&&!aiState)runAi();draw();});
       if($('#cutFrame',modal)){$('#cutFrame',modal).onchange=draw;$('#cutThick',modal).oninput=e=>{$('#cutThickV',modal).textContent=e.target.value;soon();};}
       $('#cutTol',modal).oninput=e=>{$('#cutTolV',modal).textContent=e.target.value;soon();};$('#cutEdges',modal).onchange=draw;
+      for(const [id,l] of [['cutSharp','cutSharpV'],['cutEdge','cutEdgeV'],['cutBrush','cutBrushV']])$('#'+id,modal).oninput=e=>{$('#'+l,modal).textContent=e.target.value;if(id!=='cutBrush')soon();};
+      $('#cutMain',modal).onchange=draw;
+      $$('[data-cut-brush]',modal).forEach(b=>b.onclick=()=>{brush=b.dataset.cutBrush;$$('[data-cut-brush]',modal).forEach(x=>x.classList.toggle('is-active',x===b));cv.style.touchAction=brush==='off'?'auto':'none';});
+      $('#cutUndo',modal).onclick=()=>{if(!ovStack.length)return;ov=ovStack.pop();paint();};
+      let down=null;const at=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};};
+      const stamp=(x,y)=>{const rad=Math.max(2,W*(+$('#cutBrush',modal).value)/200),v=brush==='erase'?2:1,x0=Math.max(0,Math.floor(x-rad)),x1=Math.min(W-1,Math.ceil(x+rad)),y0=Math.max(0,Math.floor(y-rad)),y1=Math.min(H-1,Math.ceil(y+rad));for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++)if((xx-x)**2+(yy-y)**2<=rad*rad)ov[yy*W+xx]=v;};
+      const line=(a,b)=>{const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/Math.max(2,W*.004)));for(let i=1;i<=n;i++)stamp(a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n);};
+      cv.onpointerdown=e=>{if(brush==='off')return;if(mode==='ai'&&!aiState)return;if(!ov)ov=new Uint8Array(W*H);ovStack.push(ov.slice());if(ovStack.length>6)ovStack.shift();cv.setPointerCapture(e.pointerId);down=at(e);stamp(down.x,down.y);if(!raf)raf=requestAnimationFrame(()=>{raf=0;paint();});e.preventDefault();};
+      cv.onpointermove=e=>{if(!down)return;const p=at(e);line(down,p);down=p;if(!raf)raf=requestAnimationFrame(()=>{raf=0;paint();});};
+      cv.onpointerup=cv.onpointercancel=()=>{down=null;};
       $('#cutCancel',modal).onclick=()=>finish(null);
-      $('#cutUse',modal).onclick=()=>{draw();const d=ctx.getImageData(0,0,cv.width,cv.height).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),clear,extracted:wantFrame()});};
+      $('#cutUse',modal).onclick=()=>{if(aiBusy)return toast('Still working on the cut-out…');paint();const d=ctx.getImageData(0,0,W,H).data;let clear=false;for(let i=3;i<d.length;i+=4*Math.max(1,Math.floor(d.length/4/6000)))if(d[i]<250){clear=true;break;}finish({src:cv.toDataURL('image/png'),clear,extracted:wantFrame()});};
       modal.oncancel=()=>finish(null);modal.addEventListener('close',()=>finish(null),{once:true});
     });
   }
@@ -882,7 +926,7 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
       $('#stDel')&&($('#stDel').onclick=()=>{stPush();d.layers=d.layers.filter(x=>x!==l);s.sel='bg';stChips();stPanel();stDraw();});
       $$('[data-nx],[data-ny]',P).forEach(x=>x.onclick=()=>{stPushSoon();l.x=clamp(l.x+(+x.dataset.nx||0)*.005,0,1);l.y=clamp(l.y+(+x.dataset.ny||0)*.005,0,1);stDraw();});
       $('#stCx').onclick=()=>{stPush();l.x=.5;stDraw();};$('#stCy').onclick=()=>{stPush();l.y=.5;stDraw();};
-      $('#stPhotoFile')&&($('#stPhotoFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';const p=playerById(s.pid);if(!f||!p)return;try{let r=await importPicture(f,1400,true);r=await cutoutDialog(r.src);if(!r)return;p.photo=r.src;persistSoon();await stLoad();toast(`Photo set for ${p.name}.`);}catch(err){toast(err.message);}});
+      $('#stPhotoFile')&&($('#stPhotoFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';const p=playerById(s.pid);if(!f||!p)return;try{let r=await importPicture(f,1400,true);r=await cutoutDialog(r.src,{photo:true});if(!r)return;p.photo=r.src;persistSoon();await stLoad();toast(`Photo set for ${p.name}.`);}catch(err){toast(err.message);}});
     }else P.innerHTML='<p class="st-hint">Tap an item on the card, or pick one below.</p>';
   }
   function stBind(){
@@ -1298,8 +1342,8 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
       download(blob,fileName);toast(`Exported ${CARD_W} × ${CARD_H} PNG.`);
     }catch{toast(location.protocol==='file:'?'Export is blocked on a file:// address. Start the local server from the README and open http://localhost:4173.':'The card could not be exported. Try again.');}
   }
-  function cardEditor(p={}){
-    const selectedTemplate=p.templateId&&p.templateId!=='gfc-original'&&data.cardTemplates.some(t=>t.id===p.templateId)?p.templateId:data.activeCardTemplateId;let photoData='',cropTouched=false;
+  function cardEditor(p={},pre={}){
+    const selectedTemplate=p.templateId&&p.templateId!=='gfc-original'&&data.cardTemplates.some(t=>t.id===p.templateId)?p.templateId:data.activeCardTemplateId;let photoData=pre.photoData||'',cropTouched=!!pre.touched;
     const photoLayer=t=>t?.layers.find(l=>l.type==='photo')||{};
     const range=(id,label,val,min,max)=>`<label class="field"><span class="field-label">${label} · <b id="${id}Value">${val}</b></span><input class="input range-input" type="range" id="${id}" min="${min}" max="${max}" value="${val}"></label>`;
     const t0=data.cardTemplates.find(t=>t.id===selectedTemplate)||data.cardTemplates[0],crop=p.crop||{};
@@ -1311,7 +1355,31 @@ ${pls.length?`<div class="cc-grid">${pls.map(p=>`<button type="button" class="cc
     $$('#modal input,#modal select').forEach(el=>el.addEventListener('input',draw));
     $('#playerCardTemplate').addEventListener('change',()=>{if(cropTouched||p.crop)return draw();const l=photoLayer(data.cardTemplates.find(t=>t.id===$('#playerCardTemplate').value));[['cardZoom',l.zoom??100],['cardFocusX',l.focusX??50],['cardFocusY',l.focusY??43]].forEach(([id,v])=>{$('#'+id).value=v;$('#'+id+'Value').textContent=v;});draw();});
     ['cardZoom','cardFocusX','cardFocusY'].forEach(id=>$('#'+id).addEventListener('input',()=>{cropTouched=true;$('#'+id+'Value').textContent=$('#'+id).value;}));
-    $('#playerCardPhoto').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{photoData=await imageFileToDataUrl(file,1400);draw();}catch(error){e.target.value='';toast(error.message);}});
+    $('#playerCardPhoto').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{let r=await importPicture(file,1400,true);
+      // the cut-out screen uses the same dialog, so keep what was typed and reopen the form afterwards
+      const draft={...p,name:$('#cardName').value,number:$('#cardNumber').value,position:$('[name="cardPosition"]',form).value,rating:$('#cardRating').value===''?null:Number($('#cardRating').value),templateId:$('#playerCardTemplate').value,crop:currentCrop()},keep={photoData,touched:cropTouched};
+      const cut=await cutoutDialog(r.src,{photo:true});
+      if(!cut){cardEditor(draft,keep);return;}
+      cardEditor({...draft,crop:undefined},{photoData:cut.src,touched:false});}catch(error){e.target.value='';toast(error.message);}});
+    const resetCropToTemplate=()=>{const l=photoLayer(data.cardTemplates.find(t=>t.id===$('#playerCardTemplate').value));[['cardZoom',l.zoom??100],['cardFocusX',l.focusX??50],['cardFocusY',l.focusY??43]].forEach(([id,v])=>{$('#'+id).value=v;$('#'+id+'Value').textContent=v;});};
+    // Phonto-style: drag the card to move the photo, pinch / wheel / buttons to zoom. The old sliders stay as hidden values.
+    ['cardZoom','cardFocusX','cardFocusY'].forEach(id=>{$('#'+id).closest('label').style.display='none';});
+    canvas.insertAdjacentHTML('beforebegin','<p class="caption">Drag the card to move the photo. Pinch with two fingers to zoom.</p>');
+    canvas.insertAdjacentHTML('afterend','<div class="cc-stage-actions"><button type="button" class="button button-quiet button-small" id="cardZoomOut">－ Zoom out</button><button type="button" class="button button-quiet button-small" id="cardZoomIn">＋ Zoom in</button></div>');
+    canvas.style.touchAction='none';
+    {const pts=new Map();let g=null;
+      const setCrop=(z,x,y)=>{cropTouched=true;[['cardZoom',Math.round(Math.min(250,Math.max(100,z)))],['cardFocusX',Math.round(Math.min(100,Math.max(0,x)))],['cardFocusY',Math.round(Math.min(100,Math.max(0,y)))]].forEach(([id,v])=>{$('#'+id).value=v;$('#'+id+'Value').textContent=v;});draw();};
+      const cur=()=>({z:+$('#cardZoom').value,x:+$('#cardFocusX').value,y:+$('#cardFocusY').value});
+      const geo=async()=>{const t=data.cardTemplates.find(q=>q.id===$('#playerCardTemplate').value)||data.cardTemplates[0],l=photoLayer(t),im=await loadCardImage(photoData||currentPhoto),r=canvas.getBoundingClientRect();return im?{iw:im.width,ih:im.height,lw:(l.w||100)/100*r.width,lh:(l.h||100)/100*r.height}:null;};
+      canvas.onpointerdown=async e=>{canvas.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const c=cur(),k=await geo();if(!k)return;
+        if(pts.size===2){const [a,b]=[...pts.values()];g={mode:'pinch',d0:Math.hypot(a.x-b.x,a.y-b.y)||1,z0:c.z,k};}else g={mode:'move',sx:e.clientX,sy:e.clientY,c,k};};
+      canvas.onpointermove=e=>{if(!g||!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const c=cur();
+        if(g.mode==='pinch'){if(pts.size<2)return;const [a,b]=[...pts.values()];setCrop(g.z0*Math.hypot(a.x-b.x,a.y-b.y)/g.d0,c.x,c.y);return;}
+        if(pts.size!==1)return;const {iw,ih,lw,lh}=g.k,S=Math.max(lw/iw,lh/ih)*g.c.z/100,tx=iw*S-lw,ty=ih*S-lh;
+        setCrop(g.c.z,tx>1?g.c.x-(e.clientX-g.sx)/tx*100:g.c.x,ty>1?g.c.y-(e.clientY-g.sy)/ty*100:g.c.y);};
+      canvas.onpointerup=canvas.onpointercancel=e=>{pts.delete(e.pointerId);if(!pts.size)g=null;else if(g?.mode==='pinch')g=null;};
+      canvas.addEventListener('wheel',e=>{e.preventDefault();const c=cur();setCrop(c.z*(e.deltaY<0?1.08:.93),c.x,c.y);},{passive:false});
+      $('#cardZoomIn').onclick=()=>{const c=cur();setCrop(c.z*1.12,c.x,c.y);};$('#cardZoomOut').onclick=()=>{const c=cur();setCrop(c.z/1.12,c.x,c.y);};}
     draw();
     form.onsubmit=async e=>{
       e.preventDefault();const f=new FormData(form),name=String(f.get('cardName')).trim().toUpperCase();
