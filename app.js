@@ -659,7 +659,7 @@
   }
 
   // ===== Settings (gear, top right): data, fonts, export size, theme, calendar, reset =====
-  const APP_VERSION='5.16';
+  const APP_VERSION='6.0';
   async function settingsSheet(){
     let usage='';try{const e=await navigator.storage?.estimate?.();if(e?.usage)usage=` · about ${(e.usage/1048576).toFixed(1)} MB used in this browser`;}catch{}
     const row=(t,d,b)=>`<div class="set-row"><div><b>${t}</b><small>${d}</small></div>${b}</div>`,B=(id,l,c='button-secondary')=>`<button type="button" class="button ${c} button-small" id="${id}">${l}</button>`;

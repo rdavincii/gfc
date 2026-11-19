@@ -8,6 +8,8 @@
 
 - v5.16: per-match attendance (match.attendance = ticked player ids; unset = everyone). Tactics bench, auto-fill and matchday substitutes only use ticked players; unticking removes them from that match's pitch.
 
+- v6.0: Apple-style theme layer (apple.css + apple.js): system font, translucent blurred top bar and tab bar, capsule buttons, grouped rounded surfaces, iOS-style sheets (grabber, spring in, drag to dismiss with flick projection), instant press feedback, reduced-motion/transparency/contrast support. Posters and cards keep the club fonts. Old styling in styles.css/ui.css is flattened by broad !important rules in apple.css.
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.

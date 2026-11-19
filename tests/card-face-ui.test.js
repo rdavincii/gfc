@@ -20,7 +20,7 @@ await page.mouse.move(bb.x+bb.width*.5,bb.y+bb.height*.3);await page.mouse.down(
 const f1=await sig();ok(f0!==f1,'dragging the face guide moves the photo with it');
 // per-player face from the studio
 const before=await sig();
-await page.click('#stFaceSet');await page.waitForSelector('#fgCanvas');
+await page.click('#stFaceSet');await page.waitForSelector('#fgCanvas');await page.waitForTimeout(700);
 const cb=await (await page.$('#fgCanvas')).boundingBox();await page.mouse.click(cb.x+cb.width*.3,cb.y+cb.height*.4);await page.fill('#fgSize','50').catch(()=>{});await page.$eval('#fgSize',e=>{e.value=50;e.dispatchEvent(new Event('input'))});await page.click('#fgSave');await page.waitForTimeout(1200);
 const after=await sig();ok(before!==after,'saving a player face re-fits the photo');
 await page.screenshot({path:`face-${vp.width}.png`});
