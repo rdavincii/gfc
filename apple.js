@@ -22,7 +22,7 @@
   });
   const end = e => {
     if (!s || e.pointerId !== s.id) return;
-    const [t0, y0] = s.hist[0], [t1, y1] = s.hist[s.hist.length - 1], v = t1 > t0 ? (y1 - y0) / (t1 - t0) * 1000 : 0;
+    const [t0, y0] = s.hist[0], [t1, y1] = s.hist[s.hist.length - 1], v = t1 > t0 && e.timeStamp - t1 < 80 ? (y1 - y0) / (t1 - t0) * 1000 : 0; // a finger that rested before lifting has no flick
     const projected = s.dy + project(v), h = m.getBoundingClientRect().height;
     m.classList.remove('is-dragging'); m.classList.add('is-settling');
     if (projected > h * .45 || v > 900) { m.style.transform = `translateY(${h + 20}px)`; setTimeout(() => { if (m.open) m.close(); }, 260); }

@@ -168,3 +168,18 @@ input[type=checkbox]{accent-color:var(--ap-tint)}
 @media (min-width:901px){.formation-toolbar{grid-template-columns:repeat(4,auto minmax(0,1fr))!important}}
 .meta-label{display:block;margin-top:2px;font-size:13px;color:var(--ap-label-3)}
 .match-row-main small{font-size:13px;color:var(--ap-label-2)}
+
+/* dialogs: ONE scroll area (the form), header fixed on top, buttons pinned at the bottom */
+.dialog[open]{display:flex;flex-direction:column;overflow:hidden!important;max-height:min(92dvh,860px)}
+.dialog-header{flex:none}
+.dialog>.dialog-form{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;align-content:start;padding-top:8px;padding-bottom:0}
+.dialog-form .dialog-actions{position:sticky;bottom:0;z-index:2;margin:0 -20px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(28,28,30,0),rgba(28,28,30,.96) 28%)}
+.rr-list{max-height:none!important;overflow:visible!important}
+.rr-row input[type=number]{width:54px;min-height:38px;background:var(--ap-fill)!important;border:0!important;border-radius:10px;color:var(--ap-label);text-align:center}
+.rr-row{background:var(--ap-group-2)!important;border-radius:12px;border:0}
+
+/* EA FC style position tags on the pitch: green natural, amber same line, red out of position */
+.fc-role{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);min-width:30px;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:800;line-height:1.2;text-align:center;color:#fff;border:2px solid #000;letter-spacing:.02em!important;z-index:3}
+.fc-role.fit-perfect{background:#1fbf5b}.fc-role.fit-ok{background:#f5a000;color:#1a1000}.fc-role.fit-off{background:#e5333b}.fc-role.fit-none{background:#555}
+.fc-empty{font-weight:700}
+.fit-ok{background:#f5a000!important}.fit-perfect{background:#1fbf5b!important}

@@ -30,11 +30,12 @@
     { level: 10, id: 'frame-legend', type: 'badge', label: 'Legend frame', note: 'Animated ring around the club badge.' }
   ];
 
-  const POS_GROUP = { GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', CDM: 'MID', CM: 'MID', CAM: 'MID', LW: 'ATT', RW: 'ATT', ST: 'ATT' };
+  const POS_GROUP = { GK: 'GK', CB: 'DEF', LB: 'DEF', RB: 'DEF', LWB: 'DEF', RWB: 'DEF', CDM: 'MID', CM: 'MID', CAM: 'MID', LM: 'MID', RM: 'MID', LW: 'ATT', RW: 'ATT', CF: 'ATT', ST: 'ATT' };
+  const POS_TITLE = { GK: 'Goalkeeper', DEF: 'Defender', MID: 'Midfielder', ATT: 'Striker' };
   const OUTFIELD_ATTRS = ['pace', 'shooting', 'passing', 'dribbling', 'defending', 'physical'];
   const GK_ATTRS = ['diving', 'handling', 'kicking', 'reflexes', 'speed', 'positioning'];
   const attrKeys = (p) => (p && p.position === 'GK' ? GK_ATTRS : OUTFIELD_ATTRS);
-  const isDefensive = (p) => ['GK', 'CB', 'LB', 'RB'].includes(p && p.position);
+  const isDefensive = (p) => ['GK', 'CB', 'LB', 'RB', 'LWB', 'RWB'].includes(p && p.position);
 
   const hasResult = (m) => m.home != null && m.away != null;
   const yearOf = (d) => String(d || '').slice(0, 4);
@@ -99,7 +100,8 @@
   }
 
   // ---- Position fit (transparent rule, no invented chemistry) ----
-  // exact position = 'perfect'; same area of the pitch (GK/DEF/MID/ATT) = 'ok'; otherwise 'off'; no position set = null.
+  // EA FC style: the slot's exact role = 'perfect' (green); same line but another role, e.g. a CB at LB = 'ok' (amber);
+  // a different line = 'off' (red); no position set = null.
   function fit(slotLabel, position) {
     if (!position || !slotLabel) return null;
     if (slotLabel === position) return 'perfect';
@@ -221,6 +223,6 @@
     return out;
   }
 
-  root.GFC_GAME = { DEFAULT_RULES, mergeRules, REWARDS, ACHIEVEMENTS, OBJECTIVES, POS_GROUP, OUTFIELD_ATTRS, GK_ATTRS, attrKeys, isDefensive, hasResult, resultOf, level, playerStats, playerLevel, matchXp, development, fit, teamRatings, objectives, clubLevel, clubXpBreakdown, unlockedRewards, analytics, cardStates, weekStart, yearOf };
+  root.GFC_GAME = { POS_TITLE, DEFAULT_RULES, mergeRules, REWARDS, ACHIEVEMENTS, OBJECTIVES, POS_GROUP, OUTFIELD_ATTRS, GK_ATTRS, attrKeys, isDefensive, hasResult, resultOf, level, playerStats, playerLevel, matchXp, development, fit, teamRatings, objectives, clubLevel, clubXpBreakdown, unlockedRewards, analytics, cardStates, weekStart, yearOf };
   if (typeof module !== 'undefined') module.exports = root.GFC_GAME;
 })(typeof window !== 'undefined' ? window : globalThis);

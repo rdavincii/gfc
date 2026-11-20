@@ -10,6 +10,8 @@
 
 - v6.0: Apple-style theme layer (apple.css + apple.js): system font, translucent blurred top bar and tab bar, capsule buttons, grouped rounded surfaces, iOS-style sheets (grabber, spring in, drag to dismiss with flick projection), instant press feedback, reduced-motion/transparency/contrast support. Posters and cards keep the club fonts. Old styling in styles.css/ui.css is flattened by broad !important rules in apple.css.
 
+- v6.1: EA FC style position tags: every slot has a specific role (LB/CB/RB, CDM/CM/CAM/LM/RM, LW/ST/RW; shapeRoles in app.js) and the tag is green (natural), amber (same line, other role) or red (out of position). New positions LWB/RWB/LM/RM/CF. Auto-fill uses specific roles. Dialogs: one scroll area (form), pinned buttons. setPage keeps scroll position when a page re-renders itself (nav taps still go to top).
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.
