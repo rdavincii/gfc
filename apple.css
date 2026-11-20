@@ -183,3 +183,8 @@ input[type=checkbox]{accent-color:var(--ap-tint)}
 .fc-role.fit-perfect{background:#1fbf5b}.fc-role.fit-ok{background:#f5a000;color:#1a1000}.fc-role.fit-off{background:#e5333b}.fc-role.fit-none{background:#555}
 .fc-empty{font-weight:700}
 .fit-ok{background:#f5a000!important}.fit-perfect{background:#1fbf5b!important}
+
+/* every sheet: header fixed, body scrolls (previously only some sheets had a scrolling body, the rest were clipped) */
+.dialog>.sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + env(safe-area-inset-bottom))!important}
+/* a modal dialog must stay position:fixed; the old "relative" on result/profile sheets pushed them off-screen */
+.dialog,.dialog.is-result,.dialog.is-profile{position:fixed!important}

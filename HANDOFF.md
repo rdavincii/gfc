@@ -12,6 +12,8 @@
 
 - v6.1: EA FC style position tags: every slot has a specific role (LB/CB/RB, CDM/CM/CAM/LM/RM, LW/ST/RW; shapeRoles in app.js) and the tag is green (natural), amber (same line, other role) or red (out of position). New positions LWB/RWB/LM/RM/CF. Auto-fill uses specific roles. Dialogs: one scroll area (form), pinned buttons. setPage keeps scroll position when a page re-renders itself (nav taps still go to top).
 
+- v6.2: fixed sheets stuck/cropped on phones: (1) `.dialog.is-profile/.is-result{position:relative}` pushed the sheet off-screen (now position:fixed); (2) sheets without a scrolling body were clipped (every `.sheet-body` now scrolls, header fixed). tests/sheets-sweep.test.js clicks every button on every page and checks each popup fits.
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.
