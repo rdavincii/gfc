@@ -375,3 +375,4 @@ html.modal-open,html.modal-open body{overflow:hidden;overscroll-behavior:none}
 .att-sheet{max-height:92vh}.att-sheet[open]{display:flex;flex-direction:column}.att-sheet .sheet-body{overflow-y:auto;min-height:0}
 .att-list{display:grid;gap:2px;margin:8px 0}.att-row{justify-content:flex-start;border-bottom:1px solid rgba(255,255,255,.06)}.att-row span{flex:1}.att-row small{opacity:.7}
 .match-bar>.button{margin-top:10px}
+.pt-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.pt .field{display:block;margin-bottom:10px}.portal-sheet{max-height:92vh}.portal-sheet textarea{min-height:80px}

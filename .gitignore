@@ -1,1 +1,4 @@
 tests/*.png
+api/node_modules/
+api/.wrangler/
+api/.dev.vars

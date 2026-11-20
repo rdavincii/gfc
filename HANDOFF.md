@@ -14,6 +14,8 @@
 
 - v6.2: fixed sheets stuck/cropped on phones: (1) `.dialog.is-profile/.is-result{position:relative}` pushed the sheet off-screen (now position:fixed); (2) sheets without a scrolling body were clipped (every `.sheet-body` now scrolls, header fixed). tests/sheets-sweep.test.js clicks every button on every page and checks each popup fits.
 
+- v7.0: player portal. `api/` = Cloudflare Worker + D1 + R2 middleware (README there has deploy steps); `player.html/js/css` = player app (sign in with club code + PIN, announcements, RSVP, payments with optional receipt photo); admin side = Settings → Player portal (sync squad+fixtures, PINs, inbox, confirm payments, post announcements, use RSVPs as attendance). Tests: tests/api.test.js, player-ui, portal-admin-ui (need the API running locally).
+
 ## App location
 
 This is a self-contained local browser app for Gamuda Football Club. Open `index.html` or serve this folder locally. It uses vanilla HTML, CSS, and JavaScript; no build step or package install is required.

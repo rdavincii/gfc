@@ -1,6 +1,6 @@
 // GFC Club Manager service worker: the app opens offline. Bump VERSION on every release.
-const VERSION = 'gfc-v6.2';
-const SHELL = ['./', 'index.html', 'styles.css', 'ui.css', 'apple.css', 'apple.js', 'base.css', 'tokens.css', 'initial-data.js', 'psd-import.js', 'game.js', 'cards.js', 'bgremove.js', 'bgworker.js', 'app.js', 'manifest.webmanifest',
+const VERSION = 'gfc-v7.0';
+const SHELL = ['./', 'index.html', 'styles.css', 'ui.css', 'apple.css', 'apple.js', 'player.html', 'player.js', 'player.css', 'player.webmanifest', 'config.js', 'base.css', 'tokens.css', 'initial-data.js', 'psd-import.js', 'game.js', 'cards.js', 'bgremove.js', 'bgworker.js', 'app.js', 'manifest.webmanifest',
   'assets/brand/gfc-logo.png', 'assets/brand/icon-192.png', 'assets/brand/icon-512.png', 'assets/brand/apple-touch-icon.png', 'assets/fonts/bebas-regular.ttf', 'assets/fonts/winner-cond.otf'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -1,0 +1,18 @@
+name = "gfc-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Create these once (see README.md): wrangler d1 create gfc, wrangler r2 bucket create gfc-proofs
+[[d1_databases]]
+binding = "DB"
+database_name = "gfc"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+
+[[r2_buckets]]
+binding = "PROOFS"
+bucket_name = "gfc-proofs"
+
+# Secrets (never commit): wrangler secret put ADMIN_KEY / CLUB_CODE
+# Optional: ALLOWED_ORIGIN = "https://rdavincii.github.io" to stop other sites calling the API from a browser.
+[vars]
+ALLOWED_ORIGIN = "*"
